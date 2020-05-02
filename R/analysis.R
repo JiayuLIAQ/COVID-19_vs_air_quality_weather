@@ -36,9 +36,35 @@ compare_table <- dt[!is.na(phase) & !parameter %like% "index", .(value = mean(va
   dcast(parameter~phase) %>% .[, change_prop := (cb-before_cb)/before_cb * 100] 
 
 dt [!is.na(phase) & !parameter %like% "index"] %>% 
-  ggplot () +
-  geom_boxplot(aes(phase, value)) +
-  facet_wrap(vars(parameter) , scales = "free")
+  ggplot (aes(phase, value, fill = phase)) +
+  geom_boxplot() +
+  stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+               fill = "white", position = position_dodge(width = 0.75)) +
+  facet_wrap(vars(parameter_fct) , scales = "free", labeller=label_parsed) +
+  mytheme_basic +
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x=element_blank())
+
+dt[, parameter_fct := factor(parameter,
+                             levels = c("pm10_twenty_four_hourly",  
+                                        "pm25_twenty_four_hourly",
+                                        "co_eight_hour_max", 
+                                        "so2_twenty_four_hourly", 
+                                        "no2_one_hour_max",         
+                                        "psi_twenty_four_hourly", 
+                                        "o3_eight_hour_max", 
+                                        "psi_three_hourly", 
+                                        "pm25_hourly"),
+                             labels = c(bquote(PM[10]~(mu*g/m^3)),  
+                                        "PM[2.5]",
+                                        "co_eight_hour_max", 
+                                        "so2_twenty_four_hourly", 
+                                        "no2_one_hour_max",         
+                                        "psi_twenty_four_hourly", 
+                                        "o3_eight_hour_max", 
+                                        "psi_three_hourly", 
+                                        "pm25_hourly") )]
 
 
 dt$parameter %>% unique
