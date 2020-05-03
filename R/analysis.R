@@ -9,8 +9,13 @@ path_all <- data.table(path = list.files(no.. = FALSE, full.names = TRUE, recurs
 dt <- rbind(fread(path_all[path %like% "pm25"]$path ) %>% setnames("PM25","value") %>% .[, parameter := "pm25_hourly"],
                     fread(path_all[path %like% "psi"]$path ) ) %>%
   setnames("timestamp","datetime") %>%   
-  .[, datetime := ymd_hms(datetime)] %>%
-  setorder(datetime)
+  .[, datetime := ymd_hms(datetime)]
+
+dt <- rbind(dt, dt [parameter == "pm25_hourly", .(value = mean(value, na.rm = T),
+                                                  longitude = 0,
+                                                  latitude = 0,
+                                                  location = "national"), by = .(datetime, parameter)] ) %>%
+      setorder(datetime)
 
 # add conditions---------------------------------------------------------------------
 
@@ -26,45 +31,126 @@ before_cb <- (ymd("2020-04-07") - cb_length$cb_length) %--% ymd("2020-04-07")
 
 dt[datetime %within% before_cb, phase := "before_cb"]
 
-# analysis --------------------------------------------------------------------------
-dt[!is.na(phase) & !parameter %like% "index", .(value = mean(value, na.rm = T) ), by = .(parameter, phase)] %>% 
-  ggplot() +
-  geom_line(aes(phase, value, color = parameter, group = parameter)) +
-  facet_wrap(vars(parameter))
+# Add columns for year, yday and month
+dt [, year := year(datetime)]
+dt [, yday := yday(datetime)]
+dt [, month := month(datetime, label = T)]
 
-compare_table <- dt[!is.na(phase) & !parameter %like% "index", .(value = mean(value, na.rm = T) ), by = .(parameter, phase)] %>% 
-  dcast(parameter~phase) %>% .[, change_prop := (cb-before_cb)/before_cb * 100] 
+same_period <- dt[phase == "cb"]$yday %>% unique
+
+# analysis --------------------------------------------------------------------------
+compare_table <- dt[!is.na(phase) & !parameter %like% "index", .(value = mean(value, na.rm = T) ), by = .(parameter, phase, location)] %>% 
+  dcast(parameter+location~phase) %>% .[, change_prop := (cb-before_cb)/before_cb * 100] %>% setorder(location)
+
+dt[, parameter_fct := factor(parameter,
+                             levels = c(
+                                        "psi_twenty_four_hourly", 
+                                        "pm10_twenty_four_hourly",  
+                                        "pm25_twenty_four_hourly",
+                                        "pm25_hourly",
+                                        
+                                        "no2_one_hour_max",     
+                                        "co_eight_hour_max", 
+                                        "so2_twenty_four_hourly", 
+                                        "o3_eight_hour_max",
+                                        "psi_three_hourly"),
+                             labels = c( 
+                                        bquote( 24-hr~PSI~index ),
+                                        bquote( 24-hr~PM[10]~(mu*g/m^3) ),  
+                                        bquote( 24-hr~PM[2.5]~(mu*g/m^3) ),
+                                        bquote( 1-hr~PM[2.5]~(mu*g/m^3) ),
+                             
+                                        bquote( 1-hr~NO[2]~(mu*g/m^3) ),   
+                                        bquote( 8-hr~CO~(mg/m^3) ),
+                                        bquote( 24-hr~SO[2]~(mu*g/m^3) ),
+                                        bquote( 8-hr~O[3]~(mu*g/m^3) ),
+                                        bquote( 3-hr~PSI~index ) )
+                             )]
 
 dt [!is.na(phase) & !parameter %like% "index"] %>% 
   ggplot (aes(phase, value, fill = phase)) +
-  geom_boxplot() +
+  geom_boxplot(outlier.alpha = 0.3, outlier.size = 0.5) +
   stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
                fill = "white", position = position_dodge(width = 0.75)) +
-  facet_wrap(vars(parameter_fct) , scales = "free", labeller=label_parsed) +
+  geom_signif(comparisons = list(c("before_cb", "cb")),
+              map_signif_level=TRUE) +
+  facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+  
+  scale_fill_manual (name="Phase",
+                     labels= phase_names ,
+                     values = color_manual_phase) +
+  
   mytheme_basic +
   theme(axis.line.x = element_blank(),
         axis.ticks.x = element_blank(),
-        axis.text.x=element_blank())
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
 
-dt[, parameter_fct := factor(parameter,
-                             levels = c("pm10_twenty_four_hourly",  
-                                        "pm25_twenty_four_hourly",
-                                        "co_eight_hour_max", 
-                                        "so2_twenty_four_hourly", 
-                                        "no2_one_hour_max",         
-                                        "psi_twenty_four_hourly", 
-                                        "o3_eight_hour_max", 
-                                        "psi_three_hourly", 
-                                        "pm25_hourly"),
-                             labels = c(bquote(PM[10]~(mu*g/m^3)),  
-                                        "PM[2.5]",
-                                        "co_eight_hour_max", 
-                                        "so2_twenty_four_hourly", 
-                                        "no2_one_hour_max",         
-                                        "psi_twenty_four_hourly", 
-                                        "o3_eight_hour_max", 
-                                        "psi_three_hourly", 
-                                        "pm25_hourly") )]
+ggsave("plots/compare_before_and_during_cb.pdf", 
+       width = 10, height = 7, useDingbats=FALSE)
+
+boxplot_par <- function(par){
+dt [location == "national" & parameter == par & !is.na(phase) & !parameter %like% "index"] %>% 
+  ggplot (aes(phase, value, fill = phase)) +
+  geom_boxplot(outlier.alpha = 0.3, outlier.size = 0.5) +
+  stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+               fill = "white", position = position_dodge(width = 0.75)) +
+  geom_signif(comparisons = list(c("before_cb", "cb")),
+              map_signif_level=TRUE) +
+  # facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+
+  scale_fill_manual (name="Phase",
+                     labels= phase_names ,
+                     values = color_manual_phase) +
+  mytheme_basic +
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank())
+}
+
+p1 <- boxplot_par("psi_twenty_four_hourly") +  ylab(bquote(bold( 24-hr~PSI ) )) + guides(fill = FALSE)
+p2 <- boxplot_par("pm10_twenty_four_hourly") +  ylab(bquote(bold( 24-hr~PM[10]~(mu*g/m^3) ) ))  + guides(fill = FALSE)
+p3 <- boxplot_par("pm25_twenty_four_hourly") +  ylab(bquote(bold( 24-hr~PM[2.5]~(mu*g/m^3) ) ))  + guides(fill = FALSE)
+p4 <- boxplot_par("pm25_hourly") +              ylab(bquote(bold( 1-hr~PM[2.5]~(mu*g/m^3) ) ))  
+
+p5 <- boxplot_par( "no2_one_hour_max") +        ylab(bquote(bold( 1-hr~NO[2]~(mu*g/m^3)  ) ))  + guides(fill = FALSE)
+p6 <- boxplot_par( "co_eight_hour_max") +       ylab(bquote(bold( 8-hr~CO~(mg/m^3)       ) ))  + guides(fill = FALSE)
+p7 <- boxplot_par( "so2_twenty_four_hourly") +  ylab(bquote(bold( 24-hr~SO[2]~(mu*g/m^3) ) ))  + guides(fill = FALSE)
+p8 <- boxplot_par( "o3_eight_hour_max") +       ylab(bquote(bold( 8-hr~O[3]~(mu*g/m^3)   ) ))  + guides(fill = FALSE)
+
+p1+p2+p3+p4+p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect")
+
+ggsave("plots/compare_before_and_during_cb_2.pdf", 
+       width = 9, height = 6, useDingbats=FALSE)
+
+
+# 往年同期比较--------
+dt$parameter %>% unique
+
+dt[location == "national" & yday %in% same_period & !parameter %like% "index" & parameter != "psi_three_hourly" ]%>% 
+  .[,year := as.character(year)] %>%
+  ggplot (aes(year, value, fill = year)) +
+  geom_boxplot(outlier.alpha = 0.3, outlier.size = 0.5) +
+  stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+               fill = "white", position = position_dodge(width = 0.75)) +
+  # geom_signif(comparisons = list(c("before_cb", "cb")),
+  #             map_signif_level=TRUE) +
+  facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+  
+  scale_fill_manual (name="Year",
+                     # labels= phase_names ,
+                     values = color_manual_year) +
+  
+  mytheme_basic +
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+
+
 
 
 dt$parameter %>% unique

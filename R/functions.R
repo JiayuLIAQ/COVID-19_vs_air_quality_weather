@@ -2,31 +2,39 @@ library(data.table)
 library(lubridate)
 library(magrittr)
 library(ggplot2)
+library(ggsignif)
+library(patchwork)
 
 
-# environments ---------------------------------------------------
-environment_variables <- c("indoor", 
-                           "outdoor")
-environment_labels <- c("Indoor", 
-                        "Outdoor")
+# phase-----
+phase_variables <- c("before_cb", 
+                           "cb")
+phase_labels <- c("Before CB", 
+                        "CB")
 
-environment_labels_e <- c(expression(bold("Indoor")),
-                          expression(bold("Outdoor"))) 
+phase_names <- set_names(phase_labels, phase_variables)
 
-environment_names <- set_names(environment_labels, environment_variables)
+color_manual_phase <- c(
+                        before_cb = "#fdc086",
+                        cb = "#beaed4"
+                      )
 
-# environment_names <- c( indoor  = "Indoor",
-#                         outdoor = "Outdoor"
-#                         )
+# year-----
+year_variables <- c("before_cb", 
+                     "cb")
+year_labels <- c("Before CB", 
+                  "CB")
 
-environment_alpha <-c( indoor = 1, 
-                       outdoor = 0.2)
+year_names <- set_names(year_labels, year_variables)
 
-colors_manual_environment <- c(  
-  indoor = "#00BFC4", 
-  outdoor = "#F8766D"
-) 
-
+color_manual_year <- c(
+  "2016" = "#fee8c8",
+  "2017" = "#fdd49e",
+  "2018" = "#fdbb84",
+  "2019" = "#fc8d59",
+  "2020" = "#beaed4"
+)
+                      
 # parameter ---------------------------------------------------
 parameter_variables <- c("pm10_twenty_four_hourly",  
                          "pm25_twenty_four_hourly",
