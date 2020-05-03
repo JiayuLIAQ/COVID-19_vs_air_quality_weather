@@ -6,6 +6,23 @@ library(ggsignif)
 library(patchwork)
 
 
+write_file <- function (d, file, datetimeformat = "ISO") {
+  file <- normalizePath(file, mustWork = FALSE)
+  if( !(file %>% dirname() %>%dirname() %>% dirname() %>% dir.exists()) ) {
+    file %>% dirname() %>%dirname() %>% dirname() %>% dir.create()
+  }
+  if( !(file %>% dirname() %>% dirname() %>% dir.exists()) ) {
+    file %>% dirname() %>% dirname() %>% dir.create()
+  }
+  if ( !( file %>% dirname() %>% dir.exists()) ) {
+    file %>% dirname() %>% dir.create()
+  }
+  fwrite(d, file, dateTimeAs = datetimeformat)
+  file
+}
+
+
+
 # phase-----
 phase_variables <- c("before_cb", 
                            "cb")
