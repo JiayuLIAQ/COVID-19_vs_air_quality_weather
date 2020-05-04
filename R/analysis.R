@@ -36,13 +36,13 @@ cb_phase <- ymd("2020-04-07") %--% ymd("2020-06-01")
 
 dt[datetime %within% cb_phase, phase := "cb"]
 
-cb_length <- dt[phase=="cb", .(cb_length = as.duration( date(datetime[.N]) - date(datetime[1]) ) + ddays(1))]
+# cb_length <- dt[phase=="cb", .(cb_length = as.duration( date(datetime[.N]) - date(datetime[1]) ) + ddays(1))]
+# before_cb <- (ymd("2020-04-07") - cb_length$cb_length) %--% ymd("2020-04-07")
+# dt[datetime %within% before_cb, phase := "before_cb"]
 
-# cb_days <- as.numeric(cb_length) /60/60/24
-
-before_cb <- (ymd("2020-04-07") - cb_length$cb_length) %--% ymd("2020-04-07")
-
+before_cb <- (ymd("2020-04-07") - 14) %--% ymd("2020-04-07")
 dt[datetime %within% before_cb, phase := "before_cb"]
+
 
 # Add columns for year, yday and month
 dt [, year := year(datetime)]
@@ -83,28 +83,51 @@ compare_table <- dt[!is.na(phase) & !parameter %like% "index", .(value = mean(va
 
 
 
-# dt [!is.na(phase) & !parameter %like% "index"] %>% 
-#   ggplot (aes(phase, value, fill = phase)) +
-#   geom_boxplot(outlier.alpha = 0.3, outlier.size = 0.5) +
-#   stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
-#                fill = "white", position = position_dodge(width = 0.75)) +
-#   geom_signif(comparisons = list(c("before_cb", "cb")),
-#               map_signif_level=TRUE) +
-#   facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
-#   
-#   scale_fill_manual (name="Phase",
-#                      labels= phase_names ,
-#                      values = color_manual_phase) +
-#   
-#   mytheme_basic +
-#   theme(axis.line.x = element_blank(),
-#         axis.ticks.x = element_blank(),
-#         axis.text.x=element_blank(),
-#         axis.title.x = element_blank(),
-#         axis.title.y = element_blank())
-# 
-# ggsave("plots/compare_before_and_during_cb.pdf", 
-#        width = 10, height = 7, useDingbats=FALSE)
+
+dt$parameter %>% unique
+dt [location != "national" &  !parameter %like% "index" & phase %in% c("before_cb","cb")] %>% 
+  .[, .(value = mean(value, na.rm = T) ), by = .(datetime = date(datetime), parameter, location, parameter_fct)] %>%
+  ggplot (aes(datetime, value, color = location)) +
+  geom_line() +
+  geom_vline(xintercept = ymd("2020-04-07")) +
+  # stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+  #              fill = "white", position = position_dodge(width = 0.75)) +
+  # geom_signif(comparisons = list(c("before_cb", "cb")),
+  #             map_signif_level=TRUE) +
+  facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+  
+  # scale_fill_manual (name="Phase",
+  #                    labels= phase_names ,
+  #                    values = color_manual_phase) +
+  mytheme_basic  # +
+  # theme(axis.line.x = element_blank(),
+  #       axis.ticks.x = element_blank(),
+  #       axis.text.x=element_blank(),
+  #       axis.title.x = element_blank())
+
+
+dt [ phase %in% c("before_cb","cb") & !parameter %like% "index"] %>%
+  ggplot (aes(phase, value, fill = phase)) +
+  geom_boxplot(outlier.alpha = 0.3, outlier.size = 0.5) +
+  stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 ,
+               fill = "white", position = position_dodge(width = 0.75)) +
+  geom_signif(comparisons = list(c("before_cb", "cb")),
+              map_signif_level=TRUE) +
+  facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+
+  scale_fill_manual (name="Phase",
+                     labels= phase_names ,
+                     values = color_manual_phase) +
+
+  mytheme_basic +
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+
+ggsave("plots/compare_before_and_during_cb.pdf",
+       width = 10, height = 7, useDingbats=FALSE)
 
 boxplot_par_compare_with_before_cb <- function(par){
 dt [location == "national_mean" & parameter == par & phase %in% c("before_cb","cb")] %>% 
