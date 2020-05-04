@@ -14,3 +14,5 @@ dt <- rbind(dt, dt [location != "national", .(value = mean(value, na.rm = T),
 test <- dt  %>%  dcast(datetime + parameter  ~ location, fun.aggregate = mean) 
 
 # national用的是几个站点的最大值！
+
+test <- dt[phase == "cb"]  %>%  dcast(datetime + parameter  ~ location, fun.aggregate = mean) 
