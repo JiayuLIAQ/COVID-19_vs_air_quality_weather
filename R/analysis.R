@@ -83,6 +83,7 @@ compare_table <- dt[!is.na(phase) & !parameter %like% "index", .(value = mean(va
 
 
 
+<<<<<<< HEAD
 
 dt$parameter %>% unique
 dt [location != "national" &  !parameter %like% "index" & phase %in% c("before_cb","cb")] %>% 
@@ -128,6 +129,30 @@ dt [ phase %in% c("before_cb","cb") & !parameter %like% "index"] %>%
 
 ggsave("plots/compare_before_and_during_cb.pdf",
        width = 10, height = 7, useDingbats=FALSE)
+=======
+# dt [!is.na(phase) & !parameter %like% "index"] %>% 
+#   ggplot (aes(phase, value, fill = phase)) +
+#   geom_boxplot(outlier.alpha = 0.3, outlier.size = 0.5) +
+#   stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+#                fill = "white", position = position_dodge(width = 0.75)) +
+#   geom_signif(comparisons = list(c("before_cb", "cb")),
+#               map_signif_level=TRUE) +
+#   facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+#   
+#   scale_fill_manual (name="Phase",
+#                      labels= phase_names ,
+#                      values = color_manual_phase) +
+#   
+#   mytheme_basic +
+#   theme(axis.line.x = element_blank(),
+#         axis.ticks.x = element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.title.x = element_blank(),
+#         axis.title.y = element_blank())
+# 
+# ggsave("plots/compare_before_and_during_cb.pdf", 
+#        width = 10, height = 7, useDingbats=FALSE)
+>>>>>>> 58cbea61c3956cd2c56032119e4bad6ee69f1265
 
 boxplot_par_compare_with_before_cb <- function(par){
 dt [location == "national_mean" & parameter == par & phase %in% c("before_cb","cb")] %>% 
@@ -188,7 +213,11 @@ dt[location == "national" & yday %in% same_period & !parameter %like% "index" & 
         axis.title.x = element_blank(),
         axis.title.y = element_blank())
 
+<<<<<<< HEAD
 dt[location == "national_mean" & yday %in% same_period & !parameter %like% "index" & parameter != "psi_three_hourly" ]%>% 
+=======
+dt[location == "national" & yday %in% same_period & !parameter %like% "index" & parameter != "psi_three_hourly" ]%>% 
+>>>>>>> 58cbea61c3956cd2c56032119e4bad6ee69f1265
   .[,year := as.character(year)] %>%
   ggplot (aes(year, value, fill = year)) +
   geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +

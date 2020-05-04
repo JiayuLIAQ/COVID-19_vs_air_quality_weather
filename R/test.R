@@ -33,13 +33,18 @@ dt [!is.na(phase) & !parameter %like% "index"] %>%
 # ggsigniff use "wilcox.test" as default
 
 # t test----
+<<<<<<< HEAD
 
 #compare with same period last years
 t_table_years <- dt[location == "national_mean" & yday %in% same_period & parameter != "psi_three_hourly"]  %>%
+=======
+test <- dt[location == "national" & yday %in% same_period & parameter != "psi_three_hourly"]  %>%
+>>>>>>> 58cbea61c3956cd2c56032119e4bad6ee69f1265
                                                     .[, {t <- wilcox.test(value[phase =="before"], value[phase == "cb"])
                                                          p <- t$p.value
                                                          list(p.value = p)
                                                          }, by = .(parameter)]
+<<<<<<< HEAD
 t_table_years[p.value >= 0.05, sign := "NS."]
 t_table_years[p.value < 0.05 & p.value >= 0.01, sign := "*"]
 t_table_years[p.value < 0.01 & p.value >= 0.001, sign := "**"]
@@ -121,6 +126,14 @@ ggline(ToothGrowth, x = "dose", y = "len", add = "mean_se",
        color = "supp", palette = "jco")+
   stat_compare_means(aes(group = supp), label = "p.signif", 
                      label.y = c(16, 25, 29))
+=======
+test[p.value >= 0.05, sign := "NS."]
+test[p.value < 0.05 & p.value >= 0.01, sign := "*"]
+test[p.value < 0.01 & p.value >= 0.001, sign := "**"]
+test[p.value < 0.001, sign := "***"]
+
+
+>>>>>>> 58cbea61c3956cd2c56032119e4bad6ee69f1265
 
 test <- dt[location == "national" & yday %in% same_period & parameter == "psi_twenty_four_hourly"]
 
