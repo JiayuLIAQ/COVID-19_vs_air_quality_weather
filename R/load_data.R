@@ -50,7 +50,7 @@ dt [, month := month(datetime, label = T)]
 
 same_period <- dt[phase == "cb"]$yday %>% unique
 
-dt[is.na(phase), phase := "before"]
+dt[yday %in% same_period & is.na(phase), phase := "before"]
 
 dt[, parameter_fct := factor(parameter,
                              levels = c("psi_twenty_four_hourly",
@@ -75,3 +75,43 @@ dt[, parameter_fct := factor(parameter,
                                bquote( 8-hr~O[3]~(mu*g/m^3) ),
                                bquote( 3-hr~PSI~index ) )
 )]
+
+
+# daily data-----------------
+dt_daily_24h <- dt[hour(datetime) == 0 & parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly")] %>% 
+  .[,.(value = mean(value, na.rm = T) ), by = .(date = date(datetime - days(1)), location, parameter)]
+
+dt_daily_3h <- dt[hour(datetime) %in% c(0,8,16) & parameter %in% c("co_eight_hour_max","o3_eight_hour_max")]
+# rm(dt_daily_3h)
+dt_daily_3h[hour(datetime) == 0, date := date(datetime - days(1))]
+dt_daily_3h[hour(datetime) %in% c(8,16), date := date(datetime)]
+dt_daily_3h_ <- dt_daily_3h %>% 
+  .[, .(value = max(value, na.rm = T) ), by = .(date, location, parameter)]
+
+dt_daily_1h_1 <- dt[ parameter %in% c("no2_one_hour_max")] %>% 
+  .[, .(value = max(value, na.rm = T) ), by = .(date = date(datetime), location, parameter)]
+dt_daily_1h_2 <- dt[ parameter %in% c("pm25_hourly")] %>% 
+  .[, .(value = mean(value, na.rm = T) ), by = .(date = date(datetime), location, parameter)]
+
+dt_daily <- rbind(dt_daily_1h_1, dt_daily_1h_2, dt_daily_3h_, dt_daily_24h, use.names=TRUE) 
+
+dt <- rbind(dt, dt [location != "national", .(value = mean(value, na.rm = T),
+                                              longitude = 0,
+                                              latitude = 0,
+                                              location = "national_mean"), by = .(datetime, parameter)] ) %>%  setorder(datetime)
+
+
+dt_daily[, datetime := date]
+dt_daily <-  dt_daily[!location %in% c("national_mean", "national")]
+
+dt_daily_1 <- dt_daily[parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly","pm25_hourly"),
+         .(value = mean(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
+
+dt_daily_2 <- dt_daily[parameter %in% c("no2_one_hour_max","co_eight_hour_max","o3_eight_hour_max"),
+                       .(value = max(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
+
+dt_daily <- rbind(dt_daily_1,dt_daily_2)
+
+dt_daily[, year := year(datetime)]
+dt_daily[, yday := yday(datetime)]
+
