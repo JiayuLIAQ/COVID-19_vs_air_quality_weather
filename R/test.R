@@ -46,11 +46,14 @@ t_table_years[p.value < 0.01 & p.value >= 0.001, sign := "**"]
 t_table_years[p.value < 0.001, sign := "***"]
 
 compare_table_years <- dt[location == "national_mean" & yday %in% same_period & parameter != "psi_three_hourly"]  %>%
-                     .[, .(cb_mean = mean(value[phase == "cb"]),
-                           before_mean = mean(value[phase =="before"]),
-                       delta_mean = mean(value[phase == "cb"]) - mean(value[phase =="before"]),
-                       delta_mean_prop = 100 * (mean(value[phase == "cb"]) - mean(value[phase =="before"]))/mean(value[phase =="before"])
+                     .[, .(cb_mean = mean(value[phase == "cb"], na.rm = T),
+                           before_mean = mean(value[phase =="before"], na.rm = T),
+                       delta_mean = mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T),
+                       delta_mean_prop = 100 * (mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T))/mean(value[phase =="before"], na.rm = T)
                        ), by = .(parameter)]
+
+compare_table_year_t <- compare_table_years[t_table_years, on = .(parameter)]  %>% setorder(parameter)
+
 
 #compare with two weeks before CB
 t_before_two_weeks <- dt[ parameter != "psi_three_hourly"]  %>%
@@ -64,13 +67,17 @@ t_before_two_weeks[p.value < 0.01 & p.value >= 0.001, sign := "**"]
 t_before_two_weeks[p.value < 0.001, sign := "***"]
 
 compare_table_before_two_weeks <- dt[parameter != "psi_three_hourly"]  %>%
-         .[, .(cb_mean = mean(value[phase == "cb"]),
-               before_mean = mean(value[phase =="before_cb"]),
-               delta_mean = mean(value[phase == "cb"]) - mean(value[phase =="before_cb"]),
-               delta_mean_prop = 100 * (mean(value[phase == "cb"]) - mean(value[phase =="before_cb"]))/mean(value[phase =="before_cb"])
+         .[, .(cb_mean = mean(value[phase == "cb"], na.rm = T),
+               before_mean = mean(value[phase =="before_cb"], na.rm = T),
+               delta_mean = mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before_cb"], na.rm = T),
+               delta_mean_prop = 100 * (mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before_cb"], na.rm = T))/mean(value[phase =="before_cb"], na.rm = T)
          ), by = .(parameter,location)]
 
-compare_table_before_two_weeks <- compare_table_before_two_weeks[t_before_two_weeks, on = .(parameter, location)]  %>% setorder(parameter, location)
+compare_table_before_two_weeks_t <- compare_table_before_two_weeks[t_before_two_weeks, on = .(parameter, location)]  %>% setorder(parameter, location)
+
+
+compare_table_before_two_weeks_t[!parameter %like% "index" & location != "national"] %>% setorder(location) %>%
+  write_file("./plots/compare_table_before_two_weeks.csv")
 
 # compare_table_before_two_weeks %>% ggplot() +
 #   geom_col(aes(location, ))
