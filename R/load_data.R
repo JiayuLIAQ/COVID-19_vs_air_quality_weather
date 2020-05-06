@@ -95,11 +95,6 @@ dt_daily_1h_2 <- dt[ parameter %in% c("pm25_hourly")] %>%
 
 dt_daily <- rbind(dt_daily_1h_1, dt_daily_1h_2, dt_daily_3h_, dt_daily_24h, use.names=TRUE) 
 
-dt <- rbind(dt, dt [location != "national", .(value = mean(value, na.rm = T),
-                                              longitude = 0,
-                                              latitude = 0,
-                                              location = "national_mean"), by = .(datetime, parameter)] ) %>%  setorder(datetime)
-
 
 dt_daily[, datetime := date]
 dt_daily <-  dt_daily[!location %in% c("national_mean", "national")]
@@ -110,7 +105,7 @@ dt_daily_1 <- dt_daily[parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_f
 dt_daily_2 <- dt_daily[parameter %in% c("no2_one_hour_max","co_eight_hour_max","o3_eight_hour_max"),
                        .(value = max(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
 
-dt_daily <- rbind(dt_daily_1,dt_daily_2)
+dt_daily <- rbind(dt_daily_1, dt_daily_2)
 
 dt_daily[, year := year(datetime)]
 dt_daily[, yday := yday(datetime)]

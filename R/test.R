@@ -245,7 +245,7 @@ dt_mobi_g <- fread(path_all[path %like% "Global_Mobility_Report.csv"]$path ) [co
 library(stringr)
 dt_mobi_g[, places := str_extract(places, ".*(?=_percent_change)")] 
 dt_mobi_g[, date := as_date(date)]
-
+dt_mobi_g[, value_compare_to_baseline := (100 + percent_change_from_baseline)/100]
 
 dt_mobi_g %>%
 ggplot() +
@@ -253,8 +253,14 @@ ggplot() +
   geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
   mytheme_basic
 
+dt_mobi_g %>%
+  ggplot() +
+  geom_line(aes(date, value_compare_to_baseline, color = places)) +
+  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
+  mytheme_basic
+
 dt_mobi_a <- fread(path_all[path %like% "applemobilitytrends"]$path )[region == "Singapore"][,c("geo_type","region","alternative_name"):=NULL] %>%
-  melt(id.vars = "transportation_type", variable.name = "date", value.name = "percent_change_from_baseline")
+  melt(id.vars = "transportation_type", variable.name = "date", value.name = "value_compare_to_baseline")
 dt_mobi_a[, date := as_date(date)] 
 
 dt_mobi_a %>%
@@ -297,12 +303,37 @@ dt_daily[dt_mobi_g, on = .(date)] %>% .[date >= ymd("2020-04-01")] %>%
 
 
 
-dt_daily[dt_mobi_g, on = .(date)] %>% .[date >= ymd("2020-04-07")] %>% 
-  .[, ]
-  
-test <- dt_daily[dt_mobi_g, on = .(date)] %>% .[date >= ymd("2020-04-01")]
-t <- test[parameter=="pm25_hourly" & places == "transit_stations"]
-cor.test(t$percent_change_from_baseline, t$value, method=c("spearman"))
 
+  
+test_2 <- dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-04-01"), 
+                                          {t.results <- cor.test(value_compare_to_baseline, value, method=c("spearman"))
+                                                 rho <- t.results$estimate
+                                                   p <- t.results$p.value
+                                          list(rho = rho,
+                                               p.value = p)}, by =.(parameter, places)]
+
+test <- dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-04-01")]
+t <- test[parameter=="pm25_hourly" & places == "transit_stations"]
+tt <- cor.test(t$percent_change_from_baseline, t$value, method=c("spearman"))
+tt$p.value
+tt$estimate
+
+
+  rho <- cov(t$percent_change_from_baseline, t$value) / (sd(t$percent_change_from_baseline) * sd(t$value))
 t <- test[parameter=="pm25_hourly" & places == "residential"]
 cor.test(t$percent_change_from_baseline, t$value, method=c("spearman"))
+
+
+test_3 <- dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-01"), 
+                                            {t.results <- cor.test(value_compare_to_baseline, value, method=c("spearman"))
+                                            rho <- t.results$estimate
+                                            p <- t.results$p.value
+                                            list(rho = rho,
+                                                 p.value = p)}, by =.(parameter, transportation_type)]
+
+
+ggscatter(dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-20")], x = "value_compare_to_baseline", y = "value", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "Value_compare_to_baseline", ylab = "Value") +
+  facet_wrap(parameter ~ transportation_type, scales = "free")
