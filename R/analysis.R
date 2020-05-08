@@ -18,7 +18,7 @@ compare_table_years <- dt_daily[yday %in% same_period & parameter != "psi_three_
   .[, .(cb_mean = mean(value[phase == "cb"], na.rm = T),
         before_mean = mean(value[phase =="before"], na.rm = T),
         delta_mean = mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T),
-        delta_mean_prop = 100 * (mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T))/mean(value[phase =="before"], na.rm = T)
+        delta_mean_pctg = 100 * (mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T))/mean(value[phase =="before"], na.rm = T)
   ), by = .(parameter, location)]
 
 compare_table_year_t <- compare_table_years[t_table_years, on = .(parameter, location)]  %>% setorder(location, parameter)
@@ -120,6 +120,54 @@ p1+p2+p4+p3+p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect"
 
 ggsave("plots/compare_last_years_4.pdf", 
        width = 9, height = 6, useDingbats=FALSE)
+
+# table 1---------------------------------
+lm_year_dt <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period] %>%
+  .[, .(value = mean(value, na.rm = T) ), by = .(index, year, location, parameter)] %>%
+  .[, { model <- lm(value ~ index, data = .SD[index != 5 ])
+  new_dt <- data.table(index = 5)
+  predicted_5 <- predict(model, new_dt)
+  # predicted_5_05 <- predict(model, new_dt, interval = "confidence" )[2]
+  # predicted_5_95 <- predict(model, new_dt, interval = "confidence" )[3]
+  covid_change <- .SD[index == 5 ]$value - predicted_5 
+  covid_change_pctg <- 100 * covid_change/.SD[index == 5 ]$value
+  
+  
+  confi_DT  <-  confint(model, level =0.9) %>% data.table  # 5% ~ 95%的置信区间
+  intercept <- coef(model)[1]
+  intercept_05 <- confi_DT[[1]][1]
+  intercept_95 <- confi_DT[[2]][1]
+  slop <-  coef(model)[2]
+  slop_05 <- confi_DT[[1]][2]
+  slop_95 <-confi_DT[[2]][2]
+  list(
+    predicted_5 = predicted_5,
+    # predicted_5_05 = predicted_5_05,
+    # predicted_5_95 = predicted_5_95,
+    covid_5 = .SD[index == 5 ]$value,
+    delta_mean = covid_change,
+    delta_mean_pctg = covid_change_pctg,
+    r.squared = summary(model)$r.squared,
+    p.value = glance(model)$p.value,
+    slop = slop,
+    slop_05 = slop_05,
+    slop_95 = slop_95,
+    intercept = intercept,
+    intercept_05 = intercept_05,
+    intercept_95 = intercept_95
+  )}, by = .(location, parameter)] %>% setorder(location, parameter)
+
+
+lm_year_dt [r.squared > 0.6, baseline_type := "predicted"]
+
+lm_year_dt [r.squared < 0.6, baseline_type := "avg_4_yr"]
+
+reduction_dt <- rbind(
+  lm_year_dt[baseline_type == "predicted"] [, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type")],
+  compare_table_year_t[lm_year_dt [baseline_type == "avg_4_yr", c("location","parameter", "baseline_type")] , on =.(location, parameter)] %>% 
+    .[, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type", "sign")], fill = T) %>% setorder(location, parameter)
+
+write_file(reduction_dt, "./plots/reduction_dt.csv")
 
 
 

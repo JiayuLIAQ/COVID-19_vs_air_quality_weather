@@ -364,7 +364,7 @@ test <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period & location 
 t.model <- lm(value ~ index , data = test[index != 5])
 library(broom)
 tidy(t.model)
-glance(t.model)
+glance(t.model)$p.value
 
 ttt <- summary(t.model)
 ttt
@@ -398,3 +398,6 @@ str(p1$layers)
 
 
 delete_layers(p1, "GeomAbline")
+
+
+
