@@ -305,7 +305,7 @@ dt_daily[dt_mobi_g, on = .(date)] %>% .[date >= ymd("2020-04-01")] %>%
 
 
   
-test_2 <- dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-04-01"), 
+test_2 <- dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-03-24"), 
                                           {t.results <- cor.test(value_compare_to_baseline, value, method=c("spearman"))
                                                  rho <- t.results$estimate
                                                    p <- t.results$p.value
@@ -332,8 +332,69 @@ test_3 <- dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-01"),
                                                  p.value = p)}, by =.(parameter, transportation_type)]
 
 
-ggscatter(dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-20")], x = "value_compare_to_baseline", y = "value", 
+ggscatter(dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-19")], x = "value_compare_to_baseline", y = "value", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "spearman",
           xlab = "Value_compare_to_baseline", ylab = "Value") +
   facet_wrap(parameter ~ transportation_type, scales = "free")
+
+
+# test considering the trend across years----
+
+compare_table_years
+
+
+
+year_index_dt[dt_daily, on = .(year)][ yday %in% same_period  & index != 5 & location =="national"] %>%
+    .[, .(value = mean(value, na.rm = T) ), by = .(index, year, location, parameter)] %>%
+  ggplot(aes(index, value, color = location, group = location)) +
+  geom_point( ) +
+  geom_smooth( method = "lm", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")) , rr.digits = 4, 
+               parse = TRUE) +  
+  facet_wrap(vars(parameter), scales = "free") +
+  mytheme_basic
+
+
+
+test <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period & location =="national" & parameter == "psi_twenty_four_hourly"] %>%
+  .[, .(value = mean(value, na.rm = T) ), by = .(index, year, location, parameter)]   
+
+t.model <- lm(value ~ index , data = test[index != 5])
+library(broom)
+tidy(t.model)
+glance(t.model)
+
+ttt <- summary(t.model)
+ttt
+new_dt <- data.table(index = 5)
+ttt <- predict(t.model, newdata = new_dt)
+ttt-1
+
+tttt <- predict(t.model, newdata = new_dt, interval = "confidence" )
+tttt[2]
+tttt[3]
+
+my.formula <- y ~ x 
+library(ggpmisc)
+dt_daily[dt_mobi_g, on = .(date)] %>% .[date >= ymd("2020-04-01")] %>%
+  ggplot(aes(value, parks)) +
+  geom_point() +
+  facet_wrap(vars(parameter), scales = "free") +
+  geom_smooth( method = "lm", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")) , rr.digits = 4, 
+               parse = TRUE) +  
+  mytheme_basic
+
+  
+
+p1 <- boxplot_par_compare_with_last_years(dt_daily, "psi_twenty_four_hourly") +   
+  ylab(bquote(bold( PSI ) )) + 
+  geom_abline(intercept = 61.59338, slope = -2.120664)
+
+str(p1$layers)
+
+
+delete_layers(p1, "GeomAbline")

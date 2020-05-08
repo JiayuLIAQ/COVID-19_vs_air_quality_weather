@@ -97,16 +97,54 @@ dt_daily <- rbind(dt_daily_1h_1, dt_daily_1h_2, dt_daily_3h_, dt_daily_24h, use.
 
 
 dt_daily[, datetime := date]
-dt_daily <-  dt_daily[!location %in% c("national_mean", "national")]
 
-dt_daily_1 <- dt_daily[parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly","pm25_hourly"),
+dt_daily_no_national <-  dt_daily[!location %in% c("national_mean", "national")]
+
+dt_daily_1 <- dt_daily_no_national[parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly","pm25_hourly"),
          .(value = mean(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
 
-dt_daily_2 <- dt_daily[parameter %in% c("no2_one_hour_max","co_eight_hour_max","o3_eight_hour_max"),
+dt_daily_2 <- dt_daily_no_national[parameter %in% c("no2_one_hour_max","co_eight_hour_max","o3_eight_hour_max"),
                        .(value = max(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
 
-dt_daily <- rbind(dt_daily_1, dt_daily_2)
+dt_daily <- rbind(dt_daily_no_national, dt_daily_1, dt_daily_2)
 
-dt_daily[, year := year(datetime)]
-dt_daily[, yday := yday(datetime)]
+# add conditions---------------------------------------------------------------------
+
+dt_daily[datetime %within% cb_phase, phase := "cb"]
+
+dt_daily[datetime %within% before_cb, phase := "before_cb"]
+
+
+# Add columns for year, yday and month
+dt_daily [, year := year(datetime)]
+dt_daily [, yday := yday(datetime)]
+dt_daily [, month := month(datetime, label = T)]
+
+
+dt_daily [yday %in% same_period & is.na(phase), phase := "before"]
+
+# dt_daily [, parameter_fct := factor(parameter,
+#                              levels = c("psi_twenty_four_hourly",
+#                                         "pm10_twenty_four_hourly",
+#                                         "pm25_twenty_four_hourly",
+#                                         "pm25_hourly",
+#                                         
+#                                         "no2_one_hour_max",
+#                                         "co_eight_hour_max",
+#                                         "so2_twenty_four_hourly",
+#                                         "o3_eight_hour_max",
+#                                         "psi_three_hourly"),
+#                              labels = c(
+#                                bquote( 24-hr~PSI~index ),
+#                                bquote( 24-hr~PM[10]~(mu*g/m^3) ),
+#                                bquote( 24-hr~PM[2.5]~(mu*g/m^3) ),
+#                                bquote( 1-hr~PM[2.5]~(mu*g/m^3) ),
+#                                
+#                                bquote( 1-hr~NO[2]~(mu*g/m^3) ),
+#                                bquote( 8-hr~CO~(mg/m^3) ),
+#                                bquote( 24-hr~SO[2]~(mu*g/m^3) ),
+#                                bquote( 8-hr~O[3]~(mu*g/m^3) ),
+#                                bquote( 3-hr~PSI~index ) )
+# )]
+
 

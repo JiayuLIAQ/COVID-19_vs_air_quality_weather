@@ -6,6 +6,7 @@ library(ggsignif)
 library(gghalves)
 library(patchwork)
 library(ggpubr)
+library(gginnards)
 
 write_file <- function (d, file, datetimeformat = "ISO") {
   file <- normalizePath(file, mustWork = FALSE)
