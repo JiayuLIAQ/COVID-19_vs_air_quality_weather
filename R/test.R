@@ -235,40 +235,6 @@ ggsave("plots/compare_last_years_2.pdf",
 
 
 
-# load mobility data------------------
-
-path_all <- data.table(path = list.files(no.. = FALSE, full.names = TRUE, recursive = TRUE, pattern = ".csv"))
-
-
-dt_mobi_g <- fread(path_all[path %like% "Global_Mobility_Report.csv"]$path ) [country_region == "Singapore"] [, c(5:11)] %>% 
-  melt(id.vars = "date", variable.name = "places", value.name = "percent_change_from_baseline")
-library(stringr)
-dt_mobi_g[, places := str_extract(places, ".*(?=_percent_change)")] 
-dt_mobi_g[, date := as_date(date)]
-dt_mobi_g[, value_compare_to_baseline := (100 + percent_change_from_baseline)/100]
-
-dt_mobi_g %>%
-ggplot() +
-  geom_line(aes(date, percent_change_from_baseline, color = places)) +
-  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
-  mytheme_basic
-
-dt_mobi_g %>%
-  ggplot() +
-  geom_line(aes(date, value_compare_to_baseline, color = places)) +
-  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
-  mytheme_basic
-
-dt_mobi_a <- fread(path_all[path %like% "applemobilitytrends"]$path )[region == "Singapore"][,c("geo_type","region","alternative_name"):=NULL] %>%
-  melt(id.vars = "transportation_type", variable.name = "date", value.name = "value_compare_to_baseline")
-dt_mobi_a[, date := as_date(date)] 
-
-dt_mobi_a %>%
-  ggplot() +
-  geom_line(aes(date, percent_change_from_baseline, color = transportation_type)) +
-  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
-  mytheme_basic
-
 # corelation ----
 
 
@@ -303,40 +269,6 @@ dt_daily[dt_mobi_g, on = .(date)] %>% .[date >= ymd("2020-04-01")] %>%
 
 
 
-
-  
-test_2 <- dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-03-24"), 
-                                          {t.results <- cor.test(value_compare_to_baseline, value, method=c("spearman"))
-                                                 rho <- t.results$estimate
-                                                   p <- t.results$p.value
-                                          list(rho = rho,
-                                               p.value = p)}, by =.(parameter, places)]
-
-test <- dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-04-01")]
-t <- test[parameter=="pm25_hourly" & places == "transit_stations"]
-tt <- cor.test(t$percent_change_from_baseline, t$value, method=c("spearman"))
-tt$p.value
-tt$estimate
-
-
-  rho <- cov(t$percent_change_from_baseline, t$value) / (sd(t$percent_change_from_baseline) * sd(t$value))
-t <- test[parameter=="pm25_hourly" & places == "residential"]
-cor.test(t$percent_change_from_baseline, t$value, method=c("spearman"))
-
-
-test_3 <- dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-01"), 
-                                            {t.results <- cor.test(value_compare_to_baseline, value, method=c("spearman"))
-                                            rho <- t.results$estimate
-                                            p <- t.results$p.value
-                                            list(rho = rho,
-                                                 p.value = p)}, by =.(parameter, transportation_type)]
-
-
-ggscatter(dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-19")], x = "value_compare_to_baseline", y = "value", 
-          add = "reg.line", conf.int = TRUE, 
-          cor.coef = TRUE, cor.method = "spearman",
-          xlab = "Value_compare_to_baseline", ylab = "Value") +
-  facet_wrap(parameter ~ transportation_type, scales = "free")
 
 
 # test considering the trend across years----
@@ -400,4 +332,104 @@ str(p1$layers)
 delete_layers(p1, "GeomAbline")
 
 
+
+
+dt_daily [location == "national" &  !parameter %like% "index" & datetime > ymd("2020-03-24")] %>%  
+  .[, .(value = mean(value, na.rm = T) ), by = .(datetime = date(datetime), parameter, location, parameter_fct)] %>%
+  ggplot (aes(datetime, value, color = location)) +
+  geom_line() +
+  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
+  facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+  # scale_fill_manual (name="Phase",
+  #                    labels= phase_names ,
+  #                    values = color_manual_phase) +
+  mytheme_basic 
+
+
+# line plot------------------------------
+dt_daily$parameter %>% unique
+dt_daily [location == "national" &   datetime > ymd("2020-03-20") & parameter == "psi_twenty_four_hourly"] %>%  
+  # .[, .(value = mean(value, na.rm = T) ), by = .(datetime = date(datetime), parameter, location, parameter_fct)] %>%
+  ggplot (aes(datetime, value, fill = location)) +
+  geom_area() +
+  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
+  # facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+  # scale_fill_manual (name="Phase",
+  #                    labels= phase_names ,
+  #                    values = color_manual_phase) +
+  mytheme_basic 
+
+dt_daily [location == "national" &   datetime > ymd("2020-03-20") & parameter == "no2_one_hour_max"] %>%  
+  # .[, .(value = mean(value, na.rm = T) ), by = .(datetime = date(datetime), parameter, location, parameter_fct)] %>%
+  ggplot (aes(datetime, value, fill = location)) +
+  geom_area() +
+  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
+  # facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+  # scale_fill_manual (name="Phase",
+  #                    labels= phase_names ,
+  #                    values = color_manual_phase) +
+  mytheme_basic 
+
+
+
+dt_daily [location == "national" &   datetime > ymd("2020-03-20") ] %>%  
+  # .[, .(value = mean(value, na.rm = T) ), by = .(datetime = date(datetime), parameter, location, parameter_fct)] %>%
+  ggplot (aes(datetime, value, fill = parameter)) +
+  geom_area() +
+  geom_vline(xintercept = ymd("2020-04-07"), linetype = 2 ) +
+  # coord_cartesian(ylim = c(6,14)) +
+  facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+  scale_fill_manual (name="Phase",
+                     labels= parameter_names ,
+                     values = color_manual_parameter) +
+  mytheme_basic 
+
+
+dt_daily [location == "national" &   datetime > ymd("2020-03-20") ] %>%  
+  ggplot () +
+  geom_area(aes(datetime, value, fill = parameter)) +
+  # geom_ribbon(aes(datetime, ymin = min(value), ymax = value, fill = parameter)) +
+  geom_vline(xintercept = ymd("2020-04-07"), linetype = 2 ) +
+  # coord_cartesian(ylim = c(6,14)) +
+  facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+  scale_fill_manual (name="Phase",
+                     labels= parameter_names ,
+                     values = color_manual_parameter) +
+  mytheme_basic +
+  theme( legend.position = "bottom")
+
+
+trend_plot_fun <- function(dt_, par) {
+  min_ <- dt_[location == "national" &   datetime > ymd("2020-03-20") & parameter == par]$value %>% min 
+  max_ <- dt_[location == "national" &   datetime > ymd("2020-03-20") & parameter == par]$value %>% max
+  range_ <- max_-min_
+  dt_[location == "national" &   datetime > ymd("2020-03-20") & parameter == par] %>%  
+    ggplot () +
+    # geom_area(aes(datetime, value, fill = parameter)) +
+    geom_ribbon(aes(datetime, ymin = max(min_-range_ * 0.3,0), ymax = value, fill = parameter)) +
+    geom_vline(xintercept = ymd("2020-04-07"), linetype = 2 ) +
+    scale_x_date (expand = c(0,0)) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual (name= NULL,
+                       labels= parameter_names ,
+                       values = color_manual_parameter) +
+    mytheme_basic 
+}
+dt_daily$parameter %>% unique
+
+trend_plot_fun (dt_daily, "pm25_hourly")
+p1 <- trend_plot_fun(dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) ))                  
+p2 <- trend_plot_fun(dt_daily, "pm10_twenty_four_hourly") +  ylab(bquote(bold( PM[10]~(mu*g/m^3) ) ))   
+p3 <- trend_plot_fun(dt_daily, "pm25_twenty_four_hourly") +  ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))  
+p4 <- trend_plot_fun(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))  
+p5 <- trend_plot_fun(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))    
+p6 <- trend_plot_fun(dt_daily, "co_eight_hour_max") +       ylab(bquote(bold( CO~(mg/m^3)       ) ))    
+p7 <- trend_plot_fun(dt_daily, "so2_twenty_four_hourly") +  ylab(bquote(bold( SO[2]~(mu*g/m^3) ) ))     
+p8 <- trend_plot_fun(dt_daily, "o3_eight_hour_max") +       ylab(bquote(bold( O[3]~(mu*g/m^3)   ) ))    
+
+p1+p2+p4+p3+p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
+
+p1 <- trend_plot_fun(dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) )) 
+p4 <- trend_plot_fun(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))  
+p5 <- trend_plot_fun(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))  
 

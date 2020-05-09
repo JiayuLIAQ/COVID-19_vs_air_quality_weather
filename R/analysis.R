@@ -69,6 +69,15 @@ boxplot_par_compare_with_last_years <- function(dt_, par){
   
   intercept_ <- lm_year_dt[parameter == par & location == "national"]$intercept 
   slop_ <- lm_year_dt[parameter == par & location == "national"]$slop
+  covid_point <- lm_year_dt[parameter == par & location == "national" ]$covid_5 
+  if (lm_year_dt[parameter == par & location == "national" ]$r.squared > 0.6) {
+    baseline_point <- lm_year_dt[parameter == par & location == "national" ]$predicted_5
+  } else {
+    baseline_point <- compare_table_year_t[parameter == par & location == "national" ]$before_mean 
+  }
+  
+  annotation_line_dt <- data.table (x_ = c(5.7,5.7),
+                                 y_ = c(baseline_point, covid_point))
   
   y_posi_1 <- max(dt_[year %in% c(2019, 2020)]$value) * 1.05
   
@@ -80,6 +89,7 @@ boxplot_par_compare_with_last_years <- function(dt_, par){
   dt_ %>% 
     .[,year := as.character(year)] %>%
     ggplot (aes(year, value, fill = year)) +
+    geom_hline(yintercept = baseline_point, size = 2, color = "#fc4e2a", alpha = 0.3) +
     geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +
     # geom_half_violin(side = "r") +
     geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
@@ -91,7 +101,9 @@ boxplot_par_compare_with_last_years <- function(dt_, par){
     geom_signif(y_position=y_posi_2, xmin=2.5, xmax=5, annotation = compare_table_year_t[parameter == par & location == "national"]$sign, tip_length=0.03) +
     geom_signif(y_position=y_posi_2 - range_*0.03 , xmin=1, xmax=4, annotation=c(" "), tip_length=0) +
     geom_abline(intercept = intercept_, slope = slop_, size = 2, color = "#969696", alpha = 0.5) +
-  
+    geom_point(inherit.aes = FALSE, x = 5, y = baseline_point, shape = 25, size = 2 , fill = "white") +
+    geom_line(inherit.aes = FALSE, data = annotation_line_dt, aes(x = x_, y = y_ ), size = 1, color = "#80b1d3", arrow = arrow(length = unit(0.3, "cm"), type = "closed")) +
+   
     scale_fill_manual (name="Year",
                        # labels= phase_names ,
                        values = color_manual_year) +
@@ -107,18 +119,18 @@ boxplot_par_compare_with_last_years <- function(dt_, par){
 
 # boxplot_par_compare_with_last_years(dt, "psi_twenty_four_hourly") +   ylab(bquote(bold( 24-hr~PSI ) ))
 
-p1 <- boxplot_par_compare_with_last_years(dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) )) 
-p2 <- boxplot_par_compare_with_last_years(dt_daily, "pm10_twenty_four_hourly") +  ylab(bquote(bold( PM[10]~(mu*g/m^3) ) ))  
-p3 <- boxplot_par_compare_with_last_years(dt_daily, "pm25_twenty_four_hourly") +  ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    
-p4 <- boxplot_par_compare_with_last_years(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))   
-p5 <- (boxplot_par_compare_with_last_years(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))     ) %>%  delete_layers(.,"GeomAbline") 
-p6 <- boxplot_par_compare_with_last_years(dt_daily, "co_eight_hour_max") +       ylab(bquote(bold( CO~(mg/m^3)       ) ))   
+p1 <- (boxplot_par_compare_with_last_years(dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) ))                   ) %>%  delete_layers(.,"GeomHline" )
+p2 <- (boxplot_par_compare_with_last_years(dt_daily, "pm10_twenty_four_hourly") +  ylab(bquote(bold( PM[10]~(mu*g/m^3) ) ))     ) %>%  delete_layers(.,"GeomHline" )
+p3 <- (boxplot_par_compare_with_last_years(dt_daily, "pm25_twenty_four_hourly") +  ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) %>%  delete_layers(.,"GeomHline" ) 
+p4 <- (boxplot_par_compare_with_last_years(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) %>%  delete_layers(.,"GeomHline" )
+p5 <- (boxplot_par_compare_with_last_years(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))     ) %>%  delete_layers(.,"GeomAbline" ) 
+p6 <- (boxplot_par_compare_with_last_years(dt_daily, "co_eight_hour_max") +       ylab(bquote(bold( CO~(mg/m^3)       ) ))      ) %>%  delete_layers(.,"GeomHline" )
 p7 <- (boxplot_par_compare_with_last_years(dt_daily, "so2_twenty_four_hourly") +  ylab(bquote(bold( SO[2]~(mu*g/m^3) ) ))      ) %>%  delete_layers(.,"GeomAbline")
-p8 <- (boxplot_par_compare_with_last_years(dt_daily, "o3_eight_hour_max") +       ylab(bquote(bold( O[3]~(mu*g/m^3)   ) ))    ) %>%  delete_layers(.,"GeomAbline")
+p8 <- (boxplot_par_compare_with_last_years(dt_daily, "o3_eight_hour_max") +       ylab(bquote(bold( O[3]~(mu*g/m^3)   ) ))     ) %>%  delete_layers(.,"GeomAbline") 
 
 p1+p2+p4+p3+p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
 
-ggsave("plots/compare_last_years_4.pdf", 
+ggsave("plots/compare_last_years_5.pdf", 
        width = 9, height = 6, useDingbats=FALSE)
 
 # table 1---------------------------------
@@ -170,8 +182,63 @@ reduction_dt <- rbind(
 write_file(reduction_dt, "./plots/reduction_dt.csv")
 
 
+# correlation between air quality and mobility---------------------------------
 
-#compare with two weeks before CB
+test_2 <- dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-03-20"), 
+                                            {t.results <- cor.test(value_compare_to_baseline, value, method=c("spearman"))
+                                            rho <- t.results$estimate
+                                            p <- t.results$p.value
+                                            list(rho = rho,
+                                                 p.value = p)}, by =.(parameter, places)]
+
+
+ggscatter(dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-03-20")], x = "value_compare_to_baseline", y = "value", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "Value_compare_to_baseline", ylab = "Value", alpha = 0.2) +
+  facet_grid(parameter ~ places, scales = "free")
+
+
+test_3 <- dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-20"), 
+                                            {t.results <- cor.test(value_compare_to_baseline, value, method=c("spearman"))
+                                            rho <- t.results$estimate
+                                            p <- t.results$p.value
+                                            list(rho = rho,
+                                                 p.value = p)}, by =.(parameter, transportation_type)]
+
+ggscatter(dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-20")], x = "value_compare_to_baseline", y = "value", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "Value_compare_to_baseline", ylab = "Value", alpha = 0.2) +
+  facet_grid(parameter ~ transportation_type, scales = "free")
+
+
+dt_daily [location == "national" &  !parameter %like% "index" & datetime > ymd("2020-03-20")] %>%  
+  .[, .(value = mean(value, na.rm = T) ), by = .(datetime = date(datetime), parameter, location, parameter_fct)] %>%
+  ggplot (aes(datetime, value, color = location)) +
+  geom_line() +
+  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
+  facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
+  # scale_fill_manual (name="Phase",
+  #                    labels= phase_names ,
+  #                    values = color_manual_phase) +
+  mytheme_basic 
+
+
+dt_mobi_g %>%
+  ggplot() +
+  geom_line(aes(date, value_compare_to_baseline, color = places)) +
+  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
+  mytheme_basic
+
+dt_mobi_a %>%
+  ggplot() +
+  geom_line(aes(date, value_compare_to_baseline, color = transportation_type)) +
+  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
+  mytheme_basic
+
+
+#compare with two weeks before CB------------------------------------
 t_before_two_weeks <- dt[ parameter != "psi_three_hourly"]  %>%
   .[, {t <- wilcox.test(value[phase =="before_cb"], value[phase == "cb"])
   p <- t$p.value
@@ -194,6 +261,11 @@ compare_table_before_two_weeks_t <- compare_table_before_two_weeks[t_before_two_
 
 compare_table_before_two_weeks_t[!parameter %like% "index" & location != "national"] %>% setorder(location) %>%
   write_file("./plots/compare_table_before_two_weeks_2.csv")
+
+
+
+
+
 
 # plots --------------------------------------------------------------------------
 symnum.args <- list(cutpoints = c(0, 0.001, 0.01, 0.05, 1), symbols = c("***", "**", "*", "NS."))

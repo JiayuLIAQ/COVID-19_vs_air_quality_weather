@@ -7,6 +7,7 @@ library(gghalves)
 library(patchwork)
 library(ggpubr)
 library(gginnards)
+library(stringr)
 
 write_file <- function (d, file, datetimeformat = "ISO") {
   file <- normalizePath(file, mustWork = FALSE)
@@ -65,33 +66,39 @@ parameter_variables <- c("pm10_twenty_four_hourly",
                          "psi_three_hourly", 
                          "pm25_hourly")
 
-parameter_labels <- c("PM10 (24-hr)",
-                      expression(bold("Indoor")),
-                        "co_eight_hour_max", 
-                        "so2_twenty_four_hourly",
-                        "no2_one_hour_max",      
-                        "psi_twenty_four_hourly",
-                        "o3_eight_hour_max", 
-                        "psi_three_hourly", 
-                        "pm25_hourly")
+parameter_labels_e <- c(expression( bold(24-hr~PM[10]~(mu*g/m^3) )),  
+                      expression( bold(24-hr~PM[2.5]~(mu*g/m^3) )),
+                      expression( bold(8-hr~CO~(mg/m^3) )),
+                      expression( bold(24-hr~SO[2]~(mu*g/m^3) )),
+                      expression( bold(1-hr~NO[2]~(mu*g/m^3) )),        
+                      expression( bold(24-hr~PSI~index ) ), 
+                      expression( bold(8-hr~O[3]~(mu*g/m^3) )),
+                      expression( bold(3-hr~PSI~index ) ),
+                      expression( bold(1-hr~PM[2.5]~(mu*g/m^3) ))
+                      )
 
-parameter_labels_e <- c(expression(bold("Indoor")),
-                          expression(bold("Outdoor"))) 
+parameter_labels <- c(expression( bold(PM[10]*" ("*mu*g/m^3*")")),  
+                      expression( bold(PM[2.5]*" ("*mu*g/m^3*") (24 hr)")),
+                      expression( bold(CO*" (mg/"*m^3*")")),
+                      expression( bold(SO[2]*" ("*mu*g/m^3*")")),
+                      expression( bold(NO[2]*" ("*mu*g/m^3*")")),        
+                      expression( bold("PSI index") ), 
+                      expression( bold(O[3]*" ("*mu*g/m^3*")")),
+                      expression( bold("PSI index (3 hr)") ),
+                      expression( bold(PM[2.5]*" ("*mu*g/m^3*")"))
+)
 
 parameter_names <- set_names(parameter_labels, parameter_variables)
 
-# environment_names <- c( indoor  = "Indoor",
-#                         outdoor = "Outdoor"
-#                         )
-
-environment_alpha <-c( indoor = 1, 
-                       outdoor = 0.2)
-
-colors_manual_environment <- c(  
-  indoor = "#00BFC4", 
-  outdoor = "#F8766D"
-) 
-
+color_manual_parameter <- c("pm10_twenty_four_hourly" = "#e5c494",
+                            "pm25_twenty_four_hourly" = "#a6d854",
+                            "co_eight_hour_max" =       "#66c2a5",
+                            "so2_twenty_four_hourly" =  "#ffd92f",
+                            "no2_one_hour_max"   =      "#fc8d62",
+                            "psi_twenty_four_hourly" =  "#e78ac3",
+                            "o3_eight_hour_max" =       "#8da0cb",
+                            "psi_three_hourly" =        "black",
+                            "pm25_hourly" =             "#b3b3b3")
 
 
 #themes---------------------------------------------

@@ -123,28 +123,52 @@ dt_daily [, month := month(datetime, label = T)]
 
 dt_daily [yday %in% same_period & is.na(phase), phase := "before"]
 
-# dt_daily [, parameter_fct := factor(parameter,
-#                              levels = c("psi_twenty_four_hourly",
-#                                         "pm10_twenty_four_hourly",
-#                                         "pm25_twenty_four_hourly",
-#                                         "pm25_hourly",
-#                                         
-#                                         "no2_one_hour_max",
-#                                         "co_eight_hour_max",
-#                                         "so2_twenty_four_hourly",
-#                                         "o3_eight_hour_max",
-#                                         "psi_three_hourly"),
-#                              labels = c(
-#                                bquote( 24-hr~PSI~index ),
-#                                bquote( 24-hr~PM[10]~(mu*g/m^3) ),
-#                                bquote( 24-hr~PM[2.5]~(mu*g/m^3) ),
-#                                bquote( 1-hr~PM[2.5]~(mu*g/m^3) ),
-#                                
-#                                bquote( 1-hr~NO[2]~(mu*g/m^3) ),
-#                                bquote( 8-hr~CO~(mg/m^3) ),
-#                                bquote( 24-hr~SO[2]~(mu*g/m^3) ),
-#                                bquote( 8-hr~O[3]~(mu*g/m^3) ),
-#                                bquote( 3-hr~PSI~index ) )
-# )]
+dt_daily [, parameter_fct := factor(parameter,
+                             levels = c("psi_twenty_four_hourly",
+                                        "pm10_twenty_four_hourly",
+                                        "pm25_twenty_four_hourly",
+                                        "pm25_hourly",
+
+                                        "no2_one_hour_max",
+                                        "co_eight_hour_max",
+                                        "so2_twenty_four_hourly",
+                                        "o3_eight_hour_max",
+                                        "psi_three_hourly"),
+                             labels = c(
+                               bquote( 24-hr~PSI~index ),
+                               bquote( 24-hr~PM[10]~(mu*g/m^3) ),
+                               bquote( 24-hr~PM[2.5]~(mu*g/m^3) ),
+                               bquote( 1-hr~PM[2.5]~(mu*g/m^3) ),
+
+                               bquote( 1-hr~NO[2]~(mu*g/m^3) ),
+                               bquote( 8-hr~CO~(mg/m^3) ),
+                               bquote( 24-hr~SO[2]~(mu*g/m^3) ),
+                               bquote( 8-hr~O[3]~(mu*g/m^3) ),
+                               bquote( 3-hr~PSI~index ) )
+)]
+
+dt_daily [, parameter := factor(parameter,
+                                    levels = c("psi_twenty_four_hourly",
+                                               "pm10_twenty_four_hourly",
+                                               "pm25_twenty_four_hourly",
+                                               "pm25_hourly",
+                                               
+                                               "no2_one_hour_max",
+                                               "co_eight_hour_max",
+                                               "so2_twenty_four_hourly",
+                                               "o3_eight_hour_max",
+                                               "psi_three_hourly")
+)]
 
 
+# load mobility data------------------
+dt_mobi_g <- fread(path_all[path %like% "Global_Mobility_Report.csv"]$path ) [country_region == "Singapore"] [, c(5:11)] %>% 
+  melt(id.vars = "date", variable.name = "places", value.name = "percent_change_from_baseline")
+
+dt_mobi_g[, places := str_extract(places, ".*(?=_percent_change)")] 
+dt_mobi_g[, date := as_date(date)]
+dt_mobi_g[, value_compare_to_baseline := (100 + percent_change_from_baseline)/100]
+
+dt_mobi_a <- fread(path_all[path %like% "applemobilitytrends"]$path )[region == "Singapore"][,c("geo_type","region","alternative_name"):=NULL] %>%
+  melt(id.vars = "transportation_type", variable.name = "date", value.name = "value_compare_to_baseline")
+dt_mobi_a[, date := as_date(date)] 
