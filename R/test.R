@@ -399,37 +399,3 @@ dt_daily [location == "national" &   datetime > ymd("2020-03-20") ] %>%
   theme( legend.position = "bottom")
 
 
-trend_plot_fun <- function(dt_, par) {
-  min_ <- dt_[location == "national" &   datetime > ymd("2020-03-20") & parameter == par]$value %>% min 
-  max_ <- dt_[location == "national" &   datetime > ymd("2020-03-20") & parameter == par]$value %>% max
-  range_ <- max_-min_
-  dt_[location == "national" &   datetime > ymd("2020-03-20") & parameter == par] %>%  
-    ggplot () +
-    # geom_area(aes(datetime, value, fill = parameter)) +
-    geom_ribbon(aes(datetime, ymin = max(min_-range_ * 0.3,0), ymax = value, fill = parameter)) +
-    geom_vline(xintercept = ymd("2020-04-07"), linetype = 2 ) +
-    scale_x_date (expand = c(0,0)) +
-    scale_y_continuous(expand = c(0,0)) +
-    scale_fill_manual (name= NULL,
-                       labels= parameter_names ,
-                       values = color_manual_parameter) +
-    mytheme_basic 
-}
-dt_daily$parameter %>% unique
-
-trend_plot_fun (dt_daily, "pm25_hourly")
-p1 <- trend_plot_fun(dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) ))                  
-p2 <- trend_plot_fun(dt_daily, "pm10_twenty_four_hourly") +  ylab(bquote(bold( PM[10]~(mu*g/m^3) ) ))   
-p3 <- trend_plot_fun(dt_daily, "pm25_twenty_four_hourly") +  ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))  
-p4 <- trend_plot_fun(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))  
-p5 <- trend_plot_fun(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))    
-p6 <- trend_plot_fun(dt_daily, "co_eight_hour_max") +       ylab(bquote(bold( CO~(mg/m^3)       ) ))    
-p7 <- trend_plot_fun(dt_daily, "so2_twenty_four_hourly") +  ylab(bquote(bold( SO[2]~(mu*g/m^3) ) ))     
-p8 <- trend_plot_fun(dt_daily, "o3_eight_hour_max") +       ylab(bquote(bold( O[3]~(mu*g/m^3)   ) ))    
-
-p1+p2+p4+p3+p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
-
-p1 <- trend_plot_fun(dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) )) 
-p4 <- trend_plot_fun(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))  
-p5 <- trend_plot_fun(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))  
-

@@ -167,8 +167,27 @@ dt_mobi_g <- fread(path_all[path %like% "Global_Mobility_Report.csv"]$path ) [co
 
 dt_mobi_g[, places := str_extract(places, ".*(?=_percent_change)")] 
 dt_mobi_g[, date := as_date(date)]
-dt_mobi_g[, value_compare_to_baseline := (100 + percent_change_from_baseline)/100]
+dt_mobi_g[, mobi_value := (100 + percent_change_from_baseline)/100]
+dt_mobi_g[, percent_change_from_baseline := NULL]
+setnames(dt_mobi_g, "places", "item")
+dt_mobi_g[, dataset_source := "Google"]
 
 dt_mobi_a <- fread(path_all[path %like% "applemobilitytrends"]$path )[region == "Singapore"][,c("geo_type","region","alternative_name"):=NULL] %>%
-  melt(id.vars = "transportation_type", variable.name = "date", value.name = "value_compare_to_baseline")
+  melt(id.vars = "transportation_type", variable.name = "date", value.name = "mobi_value")
 dt_mobi_a[, date := as_date(date)] 
+dt_mobi_a[, mobi_value := mobi_value/100] 
+setnames(dt_mobi_a, "transportation_type", "item")
+dt_mobi_a[, dataset_source := "Apple"]
+
+dt_mobi <- rbind(dt_mobi_g, dt_mobi_a) [item %in% c("driving",
+                                                    "transit", 
+                                                    "workplaces",  
+                                                    "transit_stations", 
+                                                    "residential") ]
+
+dt_mobi[, item := factor(item, level = c("driving",
+                                        "transit", 
+                                        "workplaces",  
+                                        "transit_stations", 
+                                        "residential") )]
+

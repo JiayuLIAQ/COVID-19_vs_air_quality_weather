@@ -100,6 +100,60 @@ color_manual_parameter <- c("pm10_twenty_four_hourly" = "#e5c494",
                             "psi_three_hourly" =        "black",
                             "pm25_hourly" =             "#b3b3b3")
 
+# items-------------------------------
+item_variables <- c("walking",  
+                    "driving",
+                    "transit", 
+                    "workplaces", 
+                    "parks",         
+                    "retail_and_recreation", 
+                    "transit_stations", 
+                    "residential", 
+                    "grocery_and_pharmacy")
+
+
+item_labels_b <- c("Walking",  
+                 "Driving",
+                 "Public transport", 
+                 "Workplaces", 
+                 "Parks",         
+                 "Retail & recreation", 
+                 "Transit stations", 
+                 "Residential", 
+                 "Grocery & pharmacy")
+
+item_labels  <- c("Walking[A]",  
+                   "Driving[A]",
+                   "Public transport[A]", 
+                   "Workplaces[G]", 
+                   "Parks[G]",         
+                   "Retail & recreation[G]", 
+                   "Transit stations[G]", 
+                   "Residential[G]", 
+                   "Grocery & pharmacy[G]")
+
+item_names <- set_names(item_labels, item_variables)
+
+color_manual_item_b <- c("walking"= "#ff9500",
+                       "driving"= "#ff2d55",
+                       "transit"= "#af52de",
+                       "workplaces"= "#d56e0c",
+                       "parks"      = "#188038",
+                       "retail_and_recreation"= "#1967d2",
+                       "transit_stations"= "#d01884",
+                       "residential"= "#8430ce",
+                       "grocery_and_pharmacy"= "#129eaf")
+
+color_manual_item <- c( #"walking"= "#ff9500",
+                         "driving"= "#129eaf",
+                         "transit"= "#af52de",
+                         "workplaces"= "#1967d2",
+                         "parks"      = "#188038",
+                         # "retail_and_recreation"= "#1967d2",
+                         "transit_stations"= "#d01884",
+                         "residential"= "#d56e0c"
+                         # "grocery_and_pharmacy"= "#ff2d55"
+                       )
 
 #themes---------------------------------------------
 mytheme_basic <- theme(

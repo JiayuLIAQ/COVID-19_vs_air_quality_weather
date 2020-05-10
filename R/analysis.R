@@ -183,13 +183,73 @@ write_file(reduction_dt, "./plots/reduction_dt.csv")
 
 
 # correlation between air quality and mobility---------------------------------
+# figure 2----
+trend_plot_fun <- function(dt_, par) {
+  min_ <- dt_[location == "national" &   date >= ymd("2020-03-20") & date <= ymd("2020-05-02") & parameter == par]$value %>% min 
+  max_ <- dt_[location == "national" &   date >= ymd("2020-03-20") & date <= ymd("2020-05-02") & parameter == par]$value %>% max
+  range_ <- max_-min_
+  dt_[location == "national" &  date >= ymd("2020-03-20") & date <= ymd("2020-05-02") & parameter == par] %>%  
+    ggplot () +
+    # geom_area(aes(datetime, value, fill = parameter)) +
+    geom_ribbon(aes(date, ymin = max(min_-range_ * 0.3,0), ymax = value, fill = parameter, color = parameter), alpha = 0.5) +
+    geom_vline(xintercept = ymd("2020-04-07"), linetype = 2 ) +
+    scale_x_date (expand = c(0,0), date_breaks = "1 weeks", date_labels = "%b %d") +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_color_manual (name= NULL,
+                       labels= parameter_names ,
+                       values = color_manual_parameter) +
+    scale_fill_manual (name= NULL,
+                       labels= parameter_names ,
+                       values = color_manual_parameter) +
+    mytheme_basic 
+}
 
-test_2 <- dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-03-20"), 
-                                            {t.results <- cor.test(value_compare_to_baseline, value, method=c("spearman"))
+p1 <- trend_plot_fun(dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) )) 
+p2 <- trend_plot_fun(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))  
+p3 <- trend_plot_fun(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))  
+
+pp1 <-  p1 + p2 + p3   &
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank())
+
+p4 <- dt_mobi[date >= ymd("2020-03-20") & date <= ymd("2020-05-02")] %>%
+  ggplot () +
+  # geom_area(aes(datetime, value, fill = parameter)) +
+  geom_line(aes(date, mobi_value, color = item), size = 1.5) +
+  geom_vline(xintercept = ymd("2020-04-07"), linetype = 2 ) +
+  scale_x_date (name = "Date", expand = c(0,0), date_breaks = "1 weeks", date_labels = "%b %d") +
+  scale_y_continuous(name = "Relative mobility levels", expand = c(0.05,0)) +
+  # facet_grid(dataset_source~. ,scales = "free") +
+  scale_color_manual (name= NULL,
+                      labels= item_names ,
+                      values = color_manual_item) +
+  mytheme_basic 
+
+pp1 + p4  + plot_layout(ncol = 1, heights = c(1,1,1,2)) + plot_layout(guides = "collect")
+
+ggsave("plots/trend_air_quality_mobility_2.pdf", 
+       width = 8, height = 6, useDingbats=FALSE)
+
+
+# table 2 spearman correlation table -----
+spearman_table <- dt_daily[dt_mobi, on = .(date)][date >= ymd("2020-03-20") & date <= ymd("2020-05-02") , 
+                                            {t.results <- cor.test(mobi_value, value, method=c("spearman"))
                                             rho <- t.results$estimate
                                             p <- t.results$p.value
                                             list(rho = rho,
-                                                 p.value = p)}, by =.(parameter, places)]
+                                                 p.value = p)}, by =.(parameter, item)]
+
+spearman_table[p.value >= 0.05, sign := "NS."]
+spearman_table[p.value < 0.05 & p.value >= 0.01, sign := "*"]
+spearman_table[p.value < 0.01 & p.value >= 0.001, sign := "**"]
+spearman_table[p.value < 0.001, sign := "***"]
+
+spearman_table[parameter != "pm25_twenty_four_hourly"][, rho_star := paste(round(rho,2), sign)] %>% 
+  setorder(item, parameter) %>%
+  dcast(parameter ~ item, value.var = "rho_star") %>%
+write_file(., "./plots/spearman_table.csv")
 
 
 ggscatter(dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-03-20")], x = "value_compare_to_baseline", y = "value", 
@@ -211,31 +271,6 @@ ggscatter(dt_daily[dt_mobi_a, on = .(date)][date >= ymd("2020-03-20")], x = "val
           cor.coef = TRUE, cor.method = "spearman",
           xlab = "Value_compare_to_baseline", ylab = "Value", alpha = 0.2) +
   facet_grid(parameter ~ transportation_type, scales = "free")
-
-
-dt_daily [location == "national" &  !parameter %like% "index" & datetime > ymd("2020-03-20")] %>%  
-  .[, .(value = mean(value, na.rm = T) ), by = .(datetime = date(datetime), parameter, location, parameter_fct)] %>%
-  ggplot (aes(datetime, value, color = location)) +
-  geom_line() +
-  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
-  facet_wrap(vars(parameter_fct) , scales = "free", nrow = 2, labeller=label_parsed) +
-  # scale_fill_manual (name="Phase",
-  #                    labels= phase_names ,
-  #                    values = color_manual_phase) +
-  mytheme_basic 
-
-
-dt_mobi_g %>%
-  ggplot() +
-  geom_line(aes(date, value_compare_to_baseline, color = places)) +
-  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
-  mytheme_basic
-
-dt_mobi_a %>%
-  ggplot() +
-  geom_line(aes(date, value_compare_to_baseline, color = transportation_type)) +
-  geom_vline(xintercept = ymd("2020-04-07"),linetype = 2) +
-  mytheme_basic
 
 
 #compare with two weeks before CB------------------------------------
