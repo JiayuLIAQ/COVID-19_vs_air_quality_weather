@@ -398,4 +398,23 @@ dt_daily [location == "national" &   datetime > ymd("2020-03-20") ] %>%
   mytheme_basic +
   theme( legend.position = "bottom")
 
+# which parameter determin the PSI----------
 
+
+dt$parameter %>% unique
+
+dt %>% dcast(datetime + location ~ parameter, value.var = "value") %>% .[pm25_sub_index == ""]
+
+
+dt  [ datetime > ymd("2020-03-20") & (parameter %like% "index" | parameter %like% "psi") & parameter != "pm25_sub_index"] %>% 
+  ggplot () +
+  geom_line(aes(datetime, value, color = parameter)) +
+  # geom_ribbon(aes(datetime, ymin = min(value), ymax = value, fill = parameter)) +
+  geom_vline(xintercept = ymd("2020-04-07"), linetype = 2 ) +
+  # coord_cartesian(ylim = c(6,14)) +
+  facet_wrap(vars(location) , scales = "free", nrow = 2) +
+  # scale_fill_manual (name="Phase",
+  #                    labels= parameter_names ,
+  #                    values = color_manual_parameter) +
+  mytheme_basic +
+  theme( legend.position = "bottom")

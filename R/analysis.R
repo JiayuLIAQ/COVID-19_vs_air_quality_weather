@@ -229,7 +229,7 @@ p4 <- dt_mobi[date >= ymd("2020-03-20") & date <= ymd("2020-05-02")] %>%
 
 pp1 + p4  + plot_layout(ncol = 1, heights = c(1,1,1,2)) + plot_layout(guides = "collect")
 
-ggsave("plots/trend_air_quality_mobility_2.pdf", 
+ggsave("plots/trend_air_quality_mobility_from_13.pdf", 
        width = 8, height = 6, useDingbats=FALSE)
 
 
