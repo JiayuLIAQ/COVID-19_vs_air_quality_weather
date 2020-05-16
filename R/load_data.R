@@ -31,7 +31,7 @@ dt <- rbind(dt, dt [location != "national", .(value = mean(value, na.rm = T),
 
 # add conditions---------------------------------------------------------------------
 
-cb_phase <- ymd("2020-04-07") %--% ymd("2020-06-01") 
+cb_phase <- ymd("2020-04-07") %--% ymd("2020-05-04") 
 
 dt[datetime %within% cb_phase, phase := "cb"]
 
@@ -52,7 +52,22 @@ same_period <- dt[phase == "cb"]$yday %>% unique
 
 dt[yday %in% same_period & is.na(phase), phase := "before"]
 
-dt[, parameter_fct := factor(parameter,
+dt [, parameter_ori :=  parameter]
+dt [, parameter := factor(parameter_ori,
+                                levels = c("psi_twenty_four_hourly",
+                                           "pm10_twenty_four_hourly",
+                                           "pm25_twenty_four_hourly",
+                                           "pm25_hourly",
+                                           
+                                           "no2_one_hour_max",
+                                           "co_eight_hour_max",
+                                           "so2_twenty_four_hourly",
+                                           "o3_eight_hour_max",
+                                           "psi_three_hourly")
+)]
+
+
+dt[, parameter_fct := factor(parameter_ori,
                              levels = c("psi_twenty_four_hourly",
                                         "pm10_twenty_four_hourly",
                                         "pm25_twenty_four_hourly",
@@ -76,6 +91,21 @@ dt[, parameter_fct := factor(parameter,
                                bquote( 3-hr~PSI~index ) )
 )]
 
+dt [, location := factor(location,
+                          levels = c("national", "central", "east", "west", "south", "north", "national_mean")
+)]
+
+# remove the redundant data----------------
+
+dt_24h <- dt[hour(datetime) == 0 & parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly")]
+dt_24h[, datetime := datetime - days(1)]
+
+dt_8h <- dt[hour(datetime) %in% c(0,8,16) & parameter %in% c("co_eight_hour_max","o3_eight_hour_max")]
+dt_8h[, datetime := datetime - hours(8)]
+
+dt_1h <- rbind(dt[ parameter %in% c("no2_one_hour_max")], dt[ parameter %in% c("pm25_hourly")])
+
+dt_all <- rbind(dt_24h, dt_8h, dt_1h)
 
 # daily data-----------------
 dt_daily_24h <- dt[hour(datetime) == 0 & parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly")] %>% 
@@ -98,7 +128,7 @@ dt_daily <- rbind(dt_daily_1h_1, dt_daily_1h_2, dt_daily_3h_, dt_daily_24h, use.
 
 dt_daily[, datetime := date]
 
-dt_daily_no_national <-  dt_daily[!location %in% c("national_mean", "national")]
+dt_daily_no_national <-  dt_daily[!location %in% c("national_mean", "national")]  # 去掉national以后重新算
 
 dt_daily_1 <- dt_daily_no_national[parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly","pm25_hourly"),
          .(value = mean(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
@@ -107,6 +137,7 @@ dt_daily_2 <- dt_daily_no_national[parameter %in% c("no2_one_hour_max","co_eight
                        .(value = max(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
 
 dt_daily <- rbind(dt_daily_no_national, dt_daily_1, dt_daily_2)
+
 
 # add conditions---------------------------------------------------------------------
 

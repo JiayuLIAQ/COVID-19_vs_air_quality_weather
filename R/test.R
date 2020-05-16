@@ -1,8 +1,139 @@
+#compare with same period last years
+t_table_years_months <- dt_daily[parameter != "psi_three_hourly" & month %in% c("Jan","Feb","Mar","Apr","May")]  %>%
+  .[, {t <- wilcox.test(value[year == 2020], value[year < 2020])
+  p <- t$p.value
+  list(p.value = p)
+  }, by = .(parameter, location, month )]
+t_table_years_months[p.value >= 0.05, sign := "NS."]
+t_table_years_months[p.value < 0.05 & p.value >= 0.01, sign := "*"]
+t_table_years_months[p.value < 0.01 & p.value >= 0.001, sign := "**"]
+t_table_years_months[p.value < 0.001, sign := "***"]
+
+compare_table_years_months <- dt_daily[ parameter != "psi_three_hourly"]  %>%
+  .[, .(cb_mean = mean(value[year == 2020], na.rm = T),
+        before_mean = mean(value[year < 2020], na.rm = T),
+        delta_mean = mean(value[year == 2020], na.rm = T) - mean(value[year < 2020], na.rm = T),
+        delta_mean_pctg = 100 * (mean(value[year == 2020], na.rm = T) - mean(value[year < 2020], na.rm = T))/mean(value[year < 2020], na.rm = T)
+  ), by = .(parameter, location, month)]
+
+compare_table_year_month_t <- compare_table_years_months[t_table_years_months, on = .(parameter, location)]  %>% setorder(location, parameter)
+
+year_index_dt <- data.table(year = c(2016:2020),
+                            index = c(1:5) )
+
+lm_year_dt <- year_index_dt[dt_daily, on = .(year)] %>%
+  .[, .(value = mean(value, na.rm = T) ), by = .(index, year, month, location, parameter)] %>%
+  .[, { model <- lm(value ~ index, data = .SD[index != 5 ])
+  new_dt <- data.table(index = 5)
+  predicted_5 <- predict(model, new_dt)
+  # predicted_5_05 <- predict(model, new_dt, interval = "confidence" )[2]
+  # predicted_5_95 <- predict(model, new_dt, interval = "confidence" )[3]
+  covid_change <- .SD[index == 5 ]$value - predicted_5 
+  covid_change_pctg <- 100 * covid_change/.SD[index == 5 ]$value
+  
+  confi_DT  <-  confint(model, level =0.9) %>% data.table  # 5% ~ 95%的置信区间
+  intercept <- coef(model)[1]
+  intercept_05 <- confi_DT[[1]][1]
+  intercept_95 <- confi_DT[[2]][1]
+  slop <-  coef(model)[2]
+  slop_05 <- confi_DT[[1]][2]
+  slop_95 <-confi_DT[[2]][2]
+  list(
+    predicted_5 = predicted_5,
+    # predicted_5_05 = predicted_5_05,
+    # predicted_5_95 = predicted_5_95,
+    covid_5 = .SD[index == 5 ]$value,
+    covid_change = covid_change,
+    covid_change_pctg = covid_change_pctg,
+    r.squared = summary(model)$r.squared,
+    slop = slop,
+    slop_05 = slop_05,
+    slop_95 = slop_95,
+    intercept = intercept,
+    intercept_05 = intercept_05,
+    intercept_95 = intercept_95
+  )}, by = .(month, location, parameter)] %>% setorder(month, location, parameter)
+
+
+boxplot_par_compare_with_last_years_month <- function(dt_, par){
+  
+  dt_ <- dt_[location == "national"  & parameter == par ]
+  # .[, .(value = mean(value, na.rm = T) ), by =.(datetime = date(datetime), parameter, year, parameter) ]
+  # 
+  # intercept_ <- lm_year_dt[parameter == par & location == "national"]$intercept 
+  # slop_ <- lm_year_dt[parameter == par & location == "national"]$slop
+  # covid_point <- lm_year_dt[parameter == par & location == "national" ]$covid_5 
+  # if (lm_year_dt[parameter == par & location == "national" ]$r.squared > 0.6) {
+  #   baseline_point <- lm_year_dt[parameter == par & location == "national" ]$predicted_5
+  # } else {
+  #   baseline_point <- compare_table_year_t[parameter == par & location == "national" ]$before_mean 
+  # }
+  # 
+  # annotation_line_dt <- data.table (x_ = c(5.7,5.7),
+  #                                   y_ = c(baseline_point, covid_point))
+  # 
+  # y_posi_1 <- max(dt_[year %in% c(2019, 2020)]$value) * 1.05
+  # 
+  # y_posi_2 <- max(dt_$value) * 1.05
+  # range_ <- max(dt_$value)-min(dt_$value)
+  # 
+  # if(y_posi_2-y_posi_1 < 0.05 * range_) y_posi_2 <- y_posi_2 + 0.1 * range_
+  # 
+  dt_ %>% 
+    .[,year := as.character(year)] %>%
+    ggplot (aes(year, value, fill = year)) +
+    # geom_hline(yintercept = baseline_point, size = 2, color = "#fc4e2a", alpha = 0.3) +
+    geom_boxplot(outlier.alpha = 0.5, outlier.size = 0.5) +
+    # geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
+    
+    stat_summary(fun.y = mean, geom= "point", shape= 23, size= 1 , 
+                 fill = "white", position = position_dodge(width = 0.75)) +
+    geom_signif( comparisons = list(c("2019", "2020")),
+                map_signif_level=TRUE, test = "wilcox.test") +
+    
+    # geom_signif(y_position=y_posi_2, xmin=2.5, xmax=5, annotation = compare_table_year_t[parameter == par & location == "national"]$sign, tip_length=0.03) +
+    # geom_signif(y_position=y_posi_2 - range_*0.03 , xmin=1, xmax=4, annotation=c(" "), tip_length=0) +
+    # geom_abline(intercept = intercept_, slope = slop_, size = 2, color = "#969696", alpha = 0.5) +
+    # geom_point(inherit.aes = FALSE, x = 5, y = baseline_point, shape = 25, size = 2 , fill = "white") +
+    # geom_line(inherit.aes = FALSE, data = annotation_line_dt, aes(x = x_, y = y_ ), size = 1, color = "#80b1d3", arrow = arrow(length = unit(0.3, "cm"), type = "closed")) +
+    facet_grid(.~month) +
+    scale_fill_manual (name="Year",
+                       # labels= phase_names ,
+                       values = color_manual_year) +
+    scale_color_manual (name="Year",
+                        # labels= phase_names ,
+                        values = color_manual_year) +
+    mytheme_basic +
+    theme(axis.line.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.text.x=element_blank(),
+          axis.title.x = element_blank())
+}
+
+
+p1 <- (boxplot_par_compare_with_last_years_month (dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) ))                   ) 
+p2 <- (boxplot_par_compare_with_last_years_month (dt_daily, "pm10_twenty_four_hourly") +  ylab(bquote(bold( PM[10]~(mu*g/m^3) ) ))     ) 
+p3 <- (boxplot_par_compare_with_last_years_month (dt_daily, "pm25_twenty_four_hourly") +  ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) 
+p4 <- (boxplot_par_compare_with_last_years_month (dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) 
+p5 <- (boxplot_par_compare_with_last_years_month (dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))     )  
+p6 <- (boxplot_par_compare_with_last_years_month (dt_daily, "co_eight_hour_max") +       ylab(bquote(bold( CO~(mg/m^3)       ) ))      )
+p7 <- (boxplot_par_compare_with_last_years_month (dt_daily, "so2_twenty_four_hourly") +  ylab(bquote(bold( SO[2]~(mu*g/m^3) ) ))      ) 
+p8 <- (boxplot_par_compare_with_last_years_month (dt_daily, "o3_eight_hour_max") +       ylab(bquote(bold( O[3]~(mu*g/m^3)   ) ))     ) 
+
+p1+p2+p4+p5+p6+p7+p8 + plot_layout(ncol = 1) + plot_layout(guides = "collect") 
+
+ggsave("plots/compare_last_years_months.pdf", 
+       width = 10, height = 12, useDingbats=FALSE)
+
+
 library(ggplot2)
 library(dplyr)
-library(ggridges)
 
-# Add columns for year, yday and month
+
+# Add columns for year, yday and month-------------------------
+
+
+library(ggridges)
 dt [, year := year(datetime)]
 dt [, yday := yday(datetime)]
 dt [, month := month(datetime, label = T)]
@@ -12,6 +143,101 @@ ggplot(aes(x = value, y = month, height = ..density..)) +
   geom_density_ridges(stat = "density") +
   facet_wrap(vars(year))
 
+dt[location != "national_mean" & parameter == "no2_one_hour_max"] %>% .[, year := as.character(year)] %>%
+ggplot(aes(x = value, y = month, height = ..density.., fill = year)) +
+  geom_density_ridges(stat = "density") +
+  facet_wrap(vars(location), ncol=) +
+  scale_fill_manual (name="Year",
+                     # labels= phase_names ,
+                     values = color_manual_year) +
+  mytheme_basic
+
+
+dt[location != "national_mean" & parameter == "no2_one_hour_max"] %>% .[, year := as.character(year)] %>%
+  ggplot(aes(x = month, y = value, fill= year, group = paste(month,year) )) +
+  geom_boxplot(outlier.alpha = 0.5, outlier.size = 0.5) +
+  facet_wrap(vars(location), labeller = labeller(location = location_names)) +
+  # stat_compare_means( aes(group = year), comparisons = list(c("2019","2020")), label = "p.signif") +
+  # geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +
+  # geom_half_violin(side = "r") +
+  # geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
+  scale_fill_manual (name="Year",
+                     # labels= phase_names ,
+                     values = color_manual_year) +
+  scale_color_manual (name="Year",
+                     # labels= phase_names ,
+                     values = color_manual_year) +
+  mytheme_basic
+
+dt[location == "national" & !is.na(parameter) & parameter != "psi_three_hourly" & parameter != "pm25_twenty_four_hourly"] %>% 
+  # .[!(parameter == "co_eight_hour_max" & value >3) & !(parameter == "co_eight_hour_max" & value >3)] %>% 
+  .[, year := as.character(year)] %>%
+  ggplot(aes(x = month, y = value, fill= year, group = paste(month,year) )) +
+  stat_summary(fun.data = calc_boxplot_stat, geom="boxplot", position = position_dodge(width = 0.75)) +     # without outlier
+  # geom_boxplot(outlier.alpha = 0.5, outlier.size = 0.5) +
+  facet_grid(parameter_fct~. , labeller = label_parsed, scales = "free_y") +
+  # geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +
+  # geom_half_violin(side = "r") +
+  # geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
+  scale_fill_manual (name="Year",
+                     # labels= phase_names ,
+                     values = color_manual_year) +
+  scale_color_manual (name="Year",
+                      # labels= phase_names ,
+                      values = color_manual_year) +
+  mytheme_basic
+
+
+dt[location == "national" & !is.na(parameter) & parameter != "psi_three_hourly" & parameter != "pm25_twenty_four_hourly"] %>% 
+  # .[!(parameter == "co_eight_hour_max" & value >3) & !(parameter == "co_eight_hour_max" & value >3)] %>% 
+  .[, year := as.character(year)] %>%
+  .[, .(
+    value_mean = mean(value, na.rm = T),
+    # value_max = max(value, na.rm = T),
+    # value_min = min(value, na.rm = T),
+    # value_05 = quantile(value,probs=c(.05), na.rm = T),
+    value_25 = quantile(value,probs=c(.25), na.rm = T),
+    value_50 = quantile(value,probs=c(.50), na.rm = T),
+    value_75 = quantile(value,probs=c(.75), na.rm = T)
+    # value_95 = quantile(value,probs=c(.95), na.rm = T),
+    # value_sd = sd(value, na.rm = T)
+  ), by = .(year, month, parameter, parameter_fct, location)] %>%
+  
+  ggplot(aes(x = month, fill= year, group = year)) +
+  geom_ribbon(aes(ymin = value_25, ymax = value_75), alpha = 0.5) +
+  geom_line(aes(y= value_50, color = year)) +
+
+  facet_grid(parameter_fct~. , labeller = label_parsed, scales = "free_y") +
+  # stat_compare_means( aes(group = year), comparisons = list(c("2019","2020")), label = "p.signif") +
+  # geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +
+  # geom_half_violin(side = "r") +
+  # geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
+  scale_fill_manual (name="Year",
+                     # labels= phase_names ,
+                     values = color_manual_year) +
+  scale_color_manual (name="Year",
+                      # labels= phase_names ,
+                      values = color_manual_year) +
+  mytheme_basic
+
+calc_boxplot_stat <- function(x) {
+  coef <- 1.5
+  n <- sum(!is.na(x))
+  # calculate quantiles
+  stats <- quantile(x, probs = c(0.0, 0.25, 0.5, 0.75, 1.0))
+  names(stats) <- c("ymin", "lower", "middle", "upper", "ymax")
+  iqr <- diff(stats[c(2, 4)])
+  # set whiskers
+  outliers <- x < (stats[2] - coef * iqr) | x > (stats[4] + coef * iqr)
+  if (any(outliers)) {
+    stats[c(1, 5)] <- range(c(stats[2:4], x[!outliers]), na.rm = TRUE)
+  }
+  return(stats)
+}
+
+ggplot(diamonds, aes(x=cut, y=price, fill=cut)) + 
+  stat_summary(fun.data = calc_boxplot_stat, geom="boxplot") + 
+  facet_wrap(~clarity, scales="free")
 
 # add significance stars------------------
 library(ggplot2)
@@ -31,9 +257,6 @@ dt [!is.na(phase) & !parameter %like% "index"] %>%
 
 
 # ggsigniff use "wilcox.test" as default
-
-
-
 
 
 

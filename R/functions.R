@@ -54,6 +54,30 @@ color_manual_year <- c(
   "2019" = "#fc8d59",
   "2020" = "#beaed4"
 )
+
+# locations-----
+location_variables <- c("national", 
+                       "central",
+                       "east",
+                       "west",
+                       "south",
+                       "north")
+location_labels <-c("National", 
+                    "Central",
+                    "East",
+                    "West",
+                    "South",
+                    "North")
+
+location_names <- set_names(location_labels, location_variables)
+
+# color_manual_location <- c(
+#   "2016" = "#fee8c8",
+#   "2017" = "#fdd49e",
+#   "2018" = "#fdbb84",
+#   "2019" = "#fc8d59",
+#   "2020" = "#beaed4"
+# )
                       
 # parameter ---------------------------------------------------
 parameter_variables <- c("pm10_twenty_four_hourly",  
