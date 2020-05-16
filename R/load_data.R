@@ -191,3 +191,7 @@ dt_mobi[, item := factor(item, level = c("driving",
                                         "transit_stations", 
                                         "residential") )]
 
+car_park_dt <- fread(path_all[path %like% "carpark-availability.csv"]$path) %>% setnames("timestamp", "datetime") %>%
+    .[, datetime := ymd_hms(datetime)] 
+# %>%    .[, .(mean_perc_available = mean(perc_available)), by = .(date(datetime))] %>% ggplot() +
+#   geom_line( aes(date, mean_perc_available)) 
