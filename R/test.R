@@ -111,12 +111,15 @@ boxplot_par_compare_with_last_years_month <- function(dt_, par){
 }
 
 
-p1 <- (boxplot_par_compare_with_last_years_month (dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) ))                   ) 
-p2 <- (boxplot_par_compare_with_last_years_month (dt_daily, "pm10_twenty_four_hourly") +  ylab(bquote(bold( PM[10]~(mu*g/m^3) ) ))     ) 
-p3 <- (boxplot_par_compare_with_last_years_month (dt_daily, "pm25_twenty_four_hourly") +  ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) 
-p4 <- (boxplot_par_compare_with_last_years_month (dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) 
+p1 <- (boxplot_par_compare_with_last_years_month (dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) ))                   ) + coord_cartesian(ylim=c(20,80)) +    geom_signif( comparisons = list(c("2019", "2020")), y_position=80,
+                                                                                                                                                                                          map_signif_level=TRUE, test = "wilcox.test") 
+p2 <- (boxplot_par_compare_with_last_years_month (dt_daily, "pm10_twenty_four_hourly") +  ylab(bquote(bold( PM[10]~(mu*g/m^3) ) ))     ) + coord_cartesian(ylim=c(5,55)) +    geom_signif( comparisons = list(c("2019", "2020")), y_position=55,
+                                                                                                                                                                                           map_signif_level=TRUE, test = "wilcox.test") 
+# p3 <- (boxplot_par_compare_with_last_years_month (dt_daily, "pm25_twenty_four_hourly") +  ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) 
+p4 <- (boxplot_par_compare_with_last_years_month (dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) + coord_cartesian(ylim=c(5,40)) +    geom_signif( comparisons = list(c("2019", "2020")), y_position=40,
+                                                                                                                                                                                           map_signif_level=TRUE, test = "wilcox.test") 
 p5 <- (boxplot_par_compare_with_last_years_month (dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))     )  
-p6 <- (boxplot_par_compare_with_last_years_month (dt_daily, "co_eight_hour_max") +       ylab(bquote(bold( CO~(mg/m^3)       ) ))      )
+p6 <- (boxplot_par_compare_with_last_years_month (dt_daily[value<2], "co_eight_hour_max") +       ylab(bquote(bold( CO~(mg/m^3)       ) ))      )
 p7 <- (boxplot_par_compare_with_last_years_month (dt_daily, "so2_twenty_four_hourly") +  ylab(bquote(bold( SO[2]~(mu*g/m^3) ) ))      ) 
 p8 <- (boxplot_par_compare_with_last_years_month (dt_daily, "o3_eight_hour_max") +       ylab(bquote(bold( O[3]~(mu*g/m^3)   ) ))     ) 
 
@@ -641,3 +644,45 @@ dt  [ datetime > ymd("2020-03-20") & (parameter %like% "index" | parameter %like
   #                    values = color_manual_parameter) +
   mytheme_basic +
   theme( legend.position = "bottom")
+
+
+
+# test wind rose----
+
+
+library(openair)
+dt_weather_national[year==2016]  %>%
+  windRose ( ws = "WindSpeed", wd = "WindDirection") +
+  facet_wrap(vars(year))
+dt_weather_national[year==2017]  %>%
+  windRose ( ws = "WindSpeed", wd = "WindDirection") +
+  facet_wrap(vars(year))
+dt_weather_national[year==2018]  %>%
+  windRose ( ws = "WindSpeed", wd = "WindDirection") +
+  facet_wrap(vars(year))
+dt_weather_national[year==2019]  %>%
+  windRose ( ws = "WindSpeed", wd = "WindDirection") +
+  facet_wrap(vars(year))
+dt_weather_national[year==2020]  %>%
+  windRose ( ws = "WindSpeed", wd = "WindDirection") +
+  facet_wrap(vars(year))
+
+# package clifro
+
+library(clifro)
+library(forcats)
+dt_weather_national %>% setorder(datetime)
+
+dt_weather_national[, year := as.character(year)]
+dt_weather_national[year != 2016, year_month := paste(year, month) %>% fct_inorder ]
+
+with(dt_weather_national[year != 2016], windrose(WindSpeed, WindDirection, facet = year_month, n_col = 12 ) ) #画所有
+
+with(dt_weather_national[month %in% c("Jan","Feb","Mar","Apr") & year != 2016], 
+     windrose(WindSpeed, WindDirection, 
+              facet = fct_inorder( paste(year,month) ), n_col = 4,
+              legend_title = "Wind Speed\n(m/s)",
+              legend.title.align = .5,
+              ggtheme = "bw") )
+ggsave("plots/windrose_Jan_Feb_Mar_Apr.pdf", 
+       width = 9, height = 6, useDingbats=FALSE)

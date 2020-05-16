@@ -24,11 +24,6 @@ dt <- rbind(dt, dt [location != "national", .(value = mean(value, na.rm = T),
                                               latitude = 0,
                                               location = "national_mean"), by = .(datetime, parameter)] ) %>%  setorder(datetime)
 
-# dt_weather <- fread(path_all[path %like% "weather"]$path )  %>%  setnames("timestamp","datetime") %>%   
-#   .[, datetime := ymd_hms(datetime)] %>%  setorder(datetime)
-# 
-# test <- dt_weather[,.(datetime)] %>% unique
-
 # add conditions---------------------------------------------------------------------
 
 cb_phase <- ymd("2020-04-07") %--% ymd("2020-05-04") 
@@ -222,7 +217,31 @@ dt_mobi[, item := factor(item, level = c("driving",
                                         "transit_stations", 
                                         "residential") )]
 
+
+# read car park data-----------------------------
 car_park_dt <- fread(path_all[path %like% "carpark-availability.csv"]$path) %>% setnames("timestamp", "datetime") %>%
     .[, datetime := ymd_hms(datetime)] 
 # %>%    .[, .(mean_perc_available = mean(perc_available)), by = .(date(datetime))] %>% ggplot() +
 #   geom_line( aes(date, mean_perc_available)) 
+
+
+# read weather data-----------------------------
+dt_weather <- fread(path_all[path %like% "weather"]$path )  %>%  setnames("timestamp","datetime") %>%
+  .[, datetime := ymd_hms(datetime)] %>%  setorder(datetime)
+
+
+dt_weather [, year := year(datetime)]
+# dt_weather [, yday := yday(datetime)]
+dt_weather [, month := month(datetime, label = T)]
+
+dt_weather_national <- dt_weather[, .(RH= mean(RH, na.rm = T),
+                                  Rainfall = sum(Rainfall, na.rm = T),
+                                  WindDirection = mean(WindDirection, na.rm = T),
+                                  WindSpeed = mean(WindSpeed, na.rm = T)), by = .(datetime, year, month)]
+
+
+dt_weather_hour <- dt_weather[, .(RH= mean(RH, na.rm = T),
+               Rainfall = sum(Rainfall, na.rm = T),
+               WindDirection = mean(WindDirection, na.rm = T),
+               WindSpeed = mean(WindSpeed, na.rm = T)), by = floor_date(datetime, "hours")]
+
