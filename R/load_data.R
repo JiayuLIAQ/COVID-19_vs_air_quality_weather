@@ -234,8 +234,9 @@ dt_weather [, year := year(datetime)]
 # dt_weather [, yday := yday(datetime)]
 dt_weather [, month := month(datetime, label = T)]
 
-dt_weather_national <- dt_weather[, .(RH= mean(RH, na.rm = T),
-                                  Rainfall = sum(Rainfall, na.rm = T),
+dt_weather_national <- dt_weather[, .(Tmp = mean(Tmp, na.rm = T),
+                                  RH= mean(RH, na.rm = T),
+                                  Rainfall = mean(Rainfall, na.rm = T),
                                   WindDirection = mean(WindDirection, na.rm = T),
                                   WindSpeed = mean(WindSpeed, na.rm = T)), by = .(datetime, year, month)]
 
