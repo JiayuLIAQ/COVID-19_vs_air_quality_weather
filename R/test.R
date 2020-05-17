@@ -545,3 +545,38 @@ dt_weather_national[year != 2016, year_month := paste(year, month) %>% fct_inord
 
 with(dt_weather_national[year != 2016], windrose(WindSpeed, WindDirection, facet = year_month, n_col = 12 ) ) #画所有
 
+
+# hourly correlation-----
+
+car_park_dt [dt[parameter %in% c("no2_one_hour_max", "pm25_hourly")], on = .(datetime)]
+
+p1 <- dt[parameter %in% c("no2_one_hour_max", "pm25_hourly")][car_park_dt, on = .(datetime)] %>% 
+  .[!is.na(location)] %>%
+  ggplot() +
+  geom_line(aes(datetime, value, color = location)) +
+  facet_grid(vars(parameter), scales = "free") +
+  # coord_cartesian(xlim = c(ymd_hm("2020-04-20 00:00"), ymd_hm("2020-05-04 00:00")) )+
+  scale_x_datetime(limits = c(ymd_hm("2020-04-20 00:00"), ymd_hm("2020-04-28 00:00")) )
+
+
+
+p2 <- dt[parameter %in% c("no2_one_hour_max", "pm25_hourly")][car_park_dt, on = .(datetime)] %>% 
+  .[!is.na(location)] %>%
+  ggplot() +
+  geom_line(aes(datetime, perc_available)) +
+  # facet_grid(vars(parameter)) +
+  # coord_cartesian(xlim = c(ymd_hm("2020-04-20 00:00"), ymd_hm("2020-05-04 00:00")) )+
+  scale_x_datetime(limits = c(ymd_hm("2020-04-20 00:00"), ymd_hm("2020-04-28 00:00")) )
+
+p1 + p2 + plot_layout(ncol = 1)
+
+
+dt[parameter %in% c("no2_one_hour_max", "pm25_hourly")][car_park_dt, on = .(datetime)] %>%
+  
+  
+  spearman_table <- dt_daily[dt_mobi, on = .(date)][date >= ymd("2020-03-20") & date <= ymd("2020-05-02") , 
+                                                    {t.results <- cor.test(mobi_value, value, method=c("spearman"))
+                                                    rho <- t.results$estimate
+                                                    p <- t.results$p.value
+                                                    list(rho = rho,
+                                                         p.value = p)}, by =.(parameter, item)]

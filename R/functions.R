@@ -10,6 +10,7 @@ library(gginnards)
 library(stringr)
 library(clifro)
 library(forcats)
+library(broom)
 
 write_file <- function (d, file, datetimeformat = "ISO") {
   file <- normalizePath(file, mustWork = FALSE)

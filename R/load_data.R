@@ -26,22 +26,20 @@ dt <- rbind(dt, dt [location != "national", .(value = mean(value, na.rm = T),
 
 # add conditions---------------------------------------------------------------------
 
-cb_phase <- ymd("2020-04-07") %--% ymd("2020-05-04") 
+cb_phase <- ymd("2020-04-07") %--% ymd_hms("2020-05-04 23:59:59") 
 
 dt[datetime %within% cb_phase, phase := "cb"]
 
 # cb_length <- dt[phase=="cb", .(cb_length = as.duration( date(datetime[.N]) - date(datetime[1]) ) + ddays(1))]
 # before_cb <- (ymd("2020-04-07") - cb_length$cb_length) %--% ymd("2020-04-07")
 # dt[datetime %within% before_cb, phase := "before_cb"]
-
-before_cb <- (ymd("2020-04-07") - 14) %--% ymd("2020-04-07")
-dt[datetime %within% before_cb, phase := "before_cb"]
-
-
 # Add columns for year, yday and month
 dt [, year := year(datetime)]
 dt [, yday := yday(datetime)]
 dt [, month := month(datetime, label = T)]
+
+before_cb <- (ymd("2020-04-07") - 14) %--% ymd("2020-04-07")
+dt[datetime %within% before_cb, phase := "before_cb"]
 
 same_period <- dt[phase == "cb"]$yday %>% unique
 

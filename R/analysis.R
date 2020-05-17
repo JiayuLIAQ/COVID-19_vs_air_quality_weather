@@ -130,7 +130,9 @@ p8 <- (boxplot_par_compare_with_last_years(dt_daily, "o3_eight_hour_max") +     
 
 p1+p2+p4+p3+p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
 
-ggsave("plots/compare_last_years_5.pdf", 
+p1+p2+p3+ guide_area() + p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
+
+ggsave("plots/compare_last_years_6.pdf", 
        width = 9, height = 6, useDingbats=FALSE)
 
 # table 1---------------------------------
@@ -179,16 +181,16 @@ reduction_dt <- rbind(
   compare_table_year_t[lm_year_dt [baseline_type == "avg_4_yr", c("location","parameter", "baseline_type")] , on =.(location, parameter)] %>% 
     .[, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type", "sign")], fill = T) %>% setorder(location, parameter)
 
-write_file(reduction_dt, "./plots/reduction_dt.csv")
+write_file(reduction_dt, "./plots/reduction_dt_2.csv")
 
 
 # correlation between air quality and mobility---------------------------------
 # figure 2----
 trend_plot_fun <- function(dt_, par) {
-  min_ <- dt_[location == "national" &   date >= ymd("2020-03-20") & date <= ymd("2020-05-02") & parameter == par]$value %>% min 
-  max_ <- dt_[location == "national" &   date >= ymd("2020-03-20") & date <= ymd("2020-05-02") & parameter == par]$value %>% max
+  min_ <- dt_[location == "national" &   date >= ymd("2020-03-20") & date <= ymd("2020-05-04") & parameter == par]$value %>% min 
+  max_ <- dt_[location == "national" &   date >= ymd("2020-03-20") & date <= ymd("2020-05-04") & parameter == par]$value %>% max
   range_ <- max_-min_
-  dt_[location == "national" &  date >= ymd("2020-03-20") & date <= ymd("2020-05-02") & parameter == par] %>%  
+  dt_[location == "national" &  date >= ymd("2020-03-20") & date <= ymd("2020-05-04") & parameter == par] %>%  
     ggplot () +
     # geom_area(aes(datetime, value, fill = parameter)) +
     geom_ribbon(aes(date, ymin = max(min_-range_ * 0.3,0), ymax = value, fill = parameter, color = parameter), alpha = 0.5) +
@@ -214,7 +216,7 @@ pp1 <-  p1 + p2 + p3   &
         axis.text.x=element_blank(),
         axis.title.x = element_blank())
 
-p4 <- dt_mobi[date >= ymd("2020-03-20") & date <= ymd("2020-05-02")] %>%
+p4 <- dt_mobi[date >= ymd("2020-03-20") & date <= ymd("2020-05-04")] %>%
   ggplot () +
   # geom_area(aes(datetime, value, fill = parameter)) +
   geom_line(aes(date, mobi_value, color = item), size = 1.5) +
@@ -234,7 +236,7 @@ ggsave("plots/trend_air_quality_mobility_from_13.pdf",
 
 
 # table 2 spearman correlation table -----
-spearman_table <- dt_daily[dt_mobi, on = .(date)][date >= ymd("2020-03-20") & date <= ymd("2020-05-02") , 
+spearman_table <- dt_daily[dt_mobi, on = .(date)][date >= ymd("2020-03-20") & date <= ymd("2020-05-04") , 
                                             {t.results <- cor.test(mobi_value, value, method=c("spearman"))
                                             rho <- t.results$estimate
                                             p <- t.results$p.value
@@ -246,10 +248,10 @@ spearman_table[p.value < 0.05 & p.value >= 0.01, sign := "*"]
 spearman_table[p.value < 0.01 & p.value >= 0.001, sign := "**"]
 spearman_table[p.value < 0.001, sign := "***"]
 
-spearman_table[parameter != "pm25_twenty_four_hourly"][, rho_star := paste(round(rho,2), sign)] %>% 
+spearman_table[, rho_star := paste(round(rho,2), sign)] %>% 
   setorder(item, parameter) %>%
   dcast(parameter ~ item, value.var = "rho_star") %>%
-write_file(., "./plots/spearman_table.csv")
+write_file(., "./plots/spearman_table_2.csv")
 
 
 ggscatter(dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-03-20")], x = "value_compare_to_baseline", y = "value", 
