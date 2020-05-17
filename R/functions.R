@@ -11,6 +11,7 @@ library(stringr)
 library(clifro)
 library(forcats)
 library(broom)
+library(purrr)
 
 write_file <- function (d, file, datetimeformat = "ISO") {
   file <- normalizePath(file, mustWork = FALSE)

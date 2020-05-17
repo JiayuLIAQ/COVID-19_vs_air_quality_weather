@@ -224,7 +224,7 @@ car_park_dt <- fread(path_all[path %like% "carpark-availability.csv"]$path) %>% 
 
 
 # read weather data-----------------------------
-dt_weather <- fread(path_all[path %like% "weather"]$path )  %>%  setnames("timestamp","datetime") %>%
+dt_weather <- map(path_all[path %like% "weather"]$path, fread) %>%  rbindlist  %>%  setnames("timestamp","datetime") %>%
   .[, datetime := ymd_hms(datetime)] %>%  setorder(datetime)
 
 
