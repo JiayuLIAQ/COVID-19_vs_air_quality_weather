@@ -130,7 +130,7 @@ p8 <- (boxplot_par_compare_with_last_years(dt_daily, "o3_eight_hour_max") +     
 
 p1+p2+p4+p3+p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
 
-p1+p2+p3+ guide_area() + p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
+p1+p2+p3 + guide_area() + p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
 
 ggsave("plots/compare_last_years_6.pdf", 
        width = 9, height = 6, useDingbats=FALSE)

@@ -129,6 +129,8 @@ dt_daily_1 <- dt_daily_no_national[parameter %in% c("pm10_twenty_four_hourly","p
 dt_daily_2 <- dt_daily_no_national[parameter %in% c("no2_one_hour_max","co_eight_hour_max","o3_eight_hour_max"),
                        .(value = max(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
 
+# dt_daily_2 <- dt_daily_no_national[parameter %in% c("no2_one_hour_max","co_eight_hour_max","o3_eight_hour_max"),
+#                        .(value = mean(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
 dt_daily <- rbind(dt_daily_no_national, dt_daily_1, dt_daily_2)
 
 

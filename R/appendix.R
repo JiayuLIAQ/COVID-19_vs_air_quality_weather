@@ -86,7 +86,7 @@ boxplot_par_compare_with_last_years_month <- function(dt_, par){
     geom_boxplot(outlier.alpha = 0.5, outlier.size = 0.5) +
     # geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
     
-    stat_summary(fun.y = mean, geom= "point", shape= 23, size= 1 , 
+    stat_summary(fun.y = mean, geom= "point", shape= 23, size= 1.3 , 
                  fill = "white", position = position_dodge(width = 0.75)) +
     geom_signif( comparisons = list(c("2019", "2020")),
                  map_signif_level=TRUE, test = "wilcox.test") +
@@ -125,8 +125,8 @@ p8 <- (boxplot_par_compare_with_last_years_month (dt_daily, "o3_eight_hour_max")
 
 p1+p2+p4+p5+p6+p7+p8 + plot_layout(ncol = 1) + plot_layout(guides = "collect") & theme(legend.position = "top")
 
-ggsave("plots/compare_last_years_months_2.pdf", 
-       width = 10, height = 12, useDingbats=FALSE)
+ggsave("plots/compare_last_years_months_4.pdf", 
+       width = 10, height = 15, useDingbats=FALSE)
 
 
 # meteological data-----------------
@@ -134,9 +134,9 @@ ggsave("plots/compare_last_years_months_2.pdf",
 # library(clifro)
 
 dt_weather_national[, year := as.character(year)]
-with(dt_weather_national[month %in% c("Jan","Feb","Mar","Apr") & year != 2016], 
+with(dt_weather_national[month %in% c("Jan","Feb","Mar","Apr","May") & year != 2016], 
      windrose(WindSpeed, WindDirection, 
-              facet = fct_inorder( paste(year,month) ), n_col = 4,
+              facet = fct_inorder( paste(year,month) ), n_col = 5,
               legend_title = "Wind Speed\n(m/s)",
               legend.title.align = .5,
               ggtheme = "bw") )
@@ -160,7 +160,7 @@ dt_weather_national %>%
                         axis.ticks.x = element_blank(),
                         axis.line.x = element_blank())
 
-ggsave("plots/temp_daily_avg.pdf", 
+ggsave("plots/temp_daily_avg_2.pdf", 
        width = 8, height = 4, useDingbats=FALSE)
 
 
@@ -180,14 +180,22 @@ dt_weather_national %>%
                         axis.ticks.x = element_blank(),
                         axis.line.x = element_blank())
 
-ggsave("plots/RH_daily_avg.pdf", 
+ggsave("plots/RH_daily_avg_2.pdf", 
        width = 8, height = 4, useDingbats=FALSE)
 
 
+dt_weather_national [, month_2 := month]
+dt_weather_national [month == "May" & day(datetime) %in% c(1:16), month_2 := "May1"]
+dt_weather_national [month == "May" & day(datetime) %in% c(17:31), month_2 := "May2"]
+dt_weather_national [, month_2 := fct_reorder(month_2, month(datetime))] 
+
 dt_weather_national %>%
-  .[, .(Rainfall = sum(Rainfall, na.rm = T)), by = .(month, year)] %>%
+  .[, .(Rainfall = sum(Rainfall, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), month_2, year)] %>%
+  .[, .(Rainfall = sum(Rainfall, na.rm = T),
+        I = .N), by = .(year, month_2)] %>%
+  # .[, .(Rainfall = sum(Rainfall, na.rm = T)), by = .(month, year)] %>%
   ggplot() +
-  geom_col( aes(month, Rainfall, fill = year ) , position =  position_dodge()) +
+  geom_col( aes(month_2, Rainfall, fill = year ) , position =  position_dodge()) +
   scale_fill_manual (name="Year",
                      # labels= phase_names ,
                      values = color_manual_year) +
@@ -195,5 +203,5 @@ dt_weather_national %>%
   xlab("Month in the year") +
   mytheme_basic
 
-ggsave("plots/Monthly rainfall.pdf", 
-       width = 7, height = 4, useDingbats=FALSE)
+ggsave("plots/Monthly rainfall_2.pdf", 
+       width = 9, height = 5, useDingbats=FALSE)

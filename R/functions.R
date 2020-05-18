@@ -116,7 +116,7 @@ parameter_labels <- c(expression( bold(PM[10]*" ("*mu*g/m^3*")")),
                       expression( bold(PM[2.5]*" ("*mu*g/m^3*")"))
 )
 
-parameter_names <- set_names(parameter_labels, parameter_variables)
+parameter_names <- magrittr::set_names(parameter_labels, parameter_variables)
 
 color_manual_parameter <- c("pm10_twenty_four_hourly" = "#e5c494",
                             "pm25_twenty_four_hourly" = "#a6d854",

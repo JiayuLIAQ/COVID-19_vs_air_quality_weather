@@ -580,3 +580,39 @@ dt[parameter %in% c("no2_one_hour_max", "pm25_hourly")][car_park_dt, on = .(date
                                                     p <- t.results$p.value
                                                     list(rho = rho,
                                                          p.value = p)}, by =.(parameter, item)]
+
+# how many stations-------------------
+dt_weather$station_id %>% unique 
+
+
+dt[parameter %in% c("o3_eight_hour_max") & !location %like% "national"] %>% 
+  .[!is.na(location)] %>%
+  ggplot() +
+  geom_line(aes(datetime, value, color = location)) +
+  facet_grid(vars(parameter), scales = "free") +
+  # coord_cartesian(xlim = c(ymd_hm("2020-04-20 00:00"), ymd_hm("2020-05-04 00:00")) )+
+  scale_x_datetime(limits = c(ymd_hm("2020-04-21 00:00"), ymd_hm("2020-04-23 00:00")) ) +
+  coord_cartesian(ylim = c(0,60)) +
+  mytheme_basic
+
+dt[parameter %in% c("no2_one_hour_max") & !location %like% "national"] %>% 
+  .[!is.na(location)] %>%
+  ggplot() +
+  geom_line(aes(datetime, value, color = location)) +
+  facet_grid(vars(parameter), scales = "free") +
+  # coord_cartesian(xlim = c(ymd_hm("2020-04-20 00:00"), ymd_hm("2020-05-04 00:00")) )+
+  scale_x_datetime(limits = c(ymd_hm("2020-04-20 00:00"), ymd_hm("2020-04-22 00:00")) ) +
+  coord_cartesian(ylim = c(0,60))
+
+dt[parameter %in% c("co_eight_hour_max") & !location %like% "national"] %>% 
+  .[!is.na(location)] %>%
+  ggplot() +
+  geom_line(aes(datetime, value, color = location)) +
+  facet_grid(vars(parameter), scales = "free") +
+  # coord_cartesian(xlim = c(ymd_hm("2020-04-20 00:00"), ymd_hm("2020-05-04 00:00")) )+
+  scale_x_datetime(limits = c(ymd_hm("2020-04-22 00:00"), ymd_hm("2020-04-25 00:00")) )  +
+  coord_cartesian(ylim = c(0,1))
+
+test <- dt[parameter %in% c("o3_eight_hour_max")]
+
+dt$parameter %>% unique
