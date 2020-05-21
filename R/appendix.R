@@ -205,3 +205,161 @@ dt_weather_national %>%
 
 ggsave("plots/Monthly rainfall_2.pdf", 
        width = 9, height = 5, useDingbats=FALSE)
+
+dt_weather_national[year(datetime) == 2020, phase := "cb"]
+dt_weather_national[year(datetime) != 2020, phase := "before"]
+
+dt_weather_national[, yday := yday(datetime)]
+
+
+dt_weather_national[datetime %within% cb_phase, phase := "cb"]
+dt_weather_national[datetime %within% before_cb, phase := "before_cb"]
+dt_weather_national[yday %in% same_period & is.na(phase), phase := "before"]
+
+dt_weather_national_long <- dt_weather_national %>% melt(id.vars = c("datetime", "year" , "month", "phase", "yday"), variable.name = "item", value.name = "value")
+
+# new table 1-------------
+# year 2020 vs. before-----
+t_table_years <- dt_weather_national_long[yday %in% same_period ] %>%
+  .[, .(value = mean(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), phase, item)] %>%
+  .[, {t <- wilcox.test(value[phase =="before"], value[phase == "cb"])
+  p <- t$p.value
+  list(p.value = p,
+       N = .N)
+  }, by = .(item)]
+
+t_table_years[p.value >= 0.05, sign := "NS."]
+t_table_years[p.value < 0.05 & p.value >= 0.01, sign := "*"]
+t_table_years[p.value < 0.01 & p.value >= 0.001, sign := "**"]
+t_table_years[p.value < 0.001, sign := "***"]
+
+compare_table_years <- dt_weather_national_long[yday %in% same_period ]  %>%
+  .[, .(value = mean(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), phase, item)] %>%
+  .[, .(cb_mean = mean(value[phase == "cb"], na.rm = T),
+        before_mean = mean(value[phase =="before"], na.rm = T),
+        delta_mean = mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T),
+        delta_mean_pctg = 100 * (mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T))/mean(value[phase =="before"], na.rm = T)
+  ), by = .(item)]
+
+compare_table_year_t <- compare_table_years[t_table_years, on = .(item)]  %>% setorder(item)
+
+write_file(compare_table_year_t, "./plots/table/2020_before.csv")
+
+# year 2020 vs. 2019-----
+t_table_years <- dt_weather_national_long[yday %in% same_period ] %>%
+  .[, .(value = mean(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), year, item)] %>%
+  .[, {t <- wilcox.test(value[year ==2019], value[year == 2020])
+  p <- t$p.value
+  list(p.value = p,
+       N = .N)
+  }, by = .(item)]
+
+t_table_years[p.value >= 0.05, sign := "NS."]
+t_table_years[p.value < 0.05 & p.value >= 0.01, sign := "*"]
+t_table_years[p.value < 0.01 & p.value >= 0.001, sign := "**"]
+t_table_years[p.value < 0.001, sign := "***"]
+
+compare_table_years <- dt_weather_national_long[yday %in% same_period ]  %>%
+  .[, .(value = mean(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), year, item)] %>%
+  .[, .(cb_mean = mean(value[year == 2020], na.rm = T),
+        before_mean = mean(value[year ==2019], na.rm = T),
+        delta_mean = mean(value[year == 2020], na.rm = T) - mean(value[year ==2019], na.rm = T),
+        delta_mean_pctg = 100 * (mean(value[year == 2020], na.rm = T) - mean(value[year ==2019], na.rm = T))/mean(value[year ==2019], na.rm = T)
+  ), by = .(item)]
+
+compare_table_year_t <- compare_table_years[t_table_years, on = .(item)]  %>% setorder(item)
+
+write_file(compare_table_year_t, "./plots/table/2020_2019.csv")
+
+
+# rainfall year 2020 vs. before-----
+t_table_years <- dt_weather_national_long[yday %in% same_period ] %>%
+  .[, .(value = sum(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), phase, item)] %>%
+  .[, {t <- wilcox.test(value[phase =="before"], value[phase == "cb"])
+  p <- t$p.value
+  list(p.value = p,
+       N = .N)
+  }, by = .(item)]
+
+t_table_years[p.value >= 0.05, sign := "NS."]
+t_table_years[p.value < 0.05 & p.value >= 0.01, sign := "*"]
+t_table_years[p.value < 0.01 & p.value >= 0.001, sign := "**"]
+t_table_years[p.value < 0.001, sign := "***"]
+
+compare_table_years <- dt_weather_national_long[yday %in% same_period ]  %>%
+  .[, .(value = sum(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), phase, item)] %>%
+  .[, .(cb_mean = mean(value[phase == "cb"], na.rm = T),
+        before_mean = mean(value[phase =="before"], na.rm = T),
+        delta_mean = mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T),
+        delta_mean_pctg = 100 * (mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T))/mean(value[phase =="before"], na.rm = T)
+  ), by = .(item)]
+
+compare_table_year_t <- compare_table_years[t_table_years, on = .(item)]  %>% setorder(item)
+
+write_file(compare_table_year_t, "./plots/table/2020_before_rainfall.csv")
+
+
+t_table_years <- dt_weather_national_long[yday %in% same_period ] %>%
+  .[, .(value = sum(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), year, item)] %>%
+  .[, {t <- wilcox.test(value[year ==2019], value[year == 2020])
+  p <- t$p.value
+  list(p.value = p,
+       N = .N)
+  }, by = .(item)]
+
+t_table_years[p.value >= 0.05, sign := "NS."]
+t_table_years[p.value < 0.05 & p.value >= 0.01, sign := "*"]
+t_table_years[p.value < 0.01 & p.value >= 0.001, sign := "**"]
+t_table_years[p.value < 0.001, sign := "***"]
+
+compare_table_years <- dt_weather_national_long[yday %in% same_period ]  %>%
+  .[, .(value = sum(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), year, item)] %>%
+  .[, .(cb_mean = mean(value[year == 2020], na.rm = T),
+        before_mean = mean(value[year ==2019], na.rm = T),
+        delta_mean = mean(value[year == 2020], na.rm = T) - mean(value[year ==2019], na.rm = T),
+        delta_mean_pctg = 100 * (mean(value[year == 2020], na.rm = T) - mean(value[year ==2019], na.rm = T))/mean(value[year ==2019], na.rm = T)
+  ), by = .(item)]
+
+compare_table_year_t <- compare_table_years[t_table_years, on = .(item)]  %>% setorder(item)
+
+write_file(compare_table_year_t, "./plots/table/2020_2019_rainfall.csv")
+
+
+
+
+
+year_index_dt <- data.table(year = c(2016:2020),
+                            index = c(1:5) )
+
+lm_year_dt <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period] %>%
+  .[, .(value = mean(value, na.rm = T) ), by = .(index, year, location, parameter)] %>%
+  .[, { model <- lm(value ~ index, data = .SD[index != 5 ])
+  new_dt <- data.table(index = 5)
+  predicted_5 <- predict(model, new_dt)
+  # predicted_5_05 <- predict(model, new_dt, interval = "confidence" )[2]
+  # predicted_5_95 <- predict(model, new_dt, interval = "confidence" )[3]
+  covid_change <- .SD[index == 5 ]$value - predicted_5 
+  covid_change_pctg <- 100 * covid_change/.SD[index == 5 ]$value
+  
+  confi_DT  <-  confint(model, level =0.9) %>% data.table  # 5% ~ 95%的置信区间
+  intercept <- coef(model)[1]
+  intercept_05 <- confi_DT[[1]][1]
+  intercept_95 <- confi_DT[[2]][1]
+  slop <-  coef(model)[2]
+  slop_05 <- confi_DT[[1]][2]
+  slop_95 <-confi_DT[[2]][2]
+  list(
+    predicted_5 = predicted_5,
+    # predicted_5_05 = predicted_5_05,
+    # predicted_5_95 = predicted_5_95,
+    covid_5 = .SD[index == 5 ]$value,
+    covid_change = covid_change,
+    covid_change_pctg = covid_change_pctg,
+    r.squared = summary(model)$r.squared,
+    slop = slop,
+    slop_05 = slop_05,
+    slop_95 = slop_95,
+    intercept = intercept,
+    intercept_05 = intercept_05,
+    intercept_95 = intercept_95
+  )}, by = .(location, parameter)] %>% setorder(location, parameter)

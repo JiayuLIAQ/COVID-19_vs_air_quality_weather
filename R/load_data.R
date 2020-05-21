@@ -100,39 +100,60 @@ dt_1h <- rbind(dt[ parameter %in% c("no2_one_hour_max")], dt[ parameter %in% c("
 
 dt_all <- rbind(dt_24h, dt_8h, dt_1h)
 
-# daily data-----------------
+# daily data old version-----------------
+# dt_daily_24h <- dt[hour(datetime) == 0 & parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly")] %>% 
+#   .[,.(value = mean(value, na.rm = T) ), by = .(date = date(datetime - days(1)), location, parameter)]
+# 
+# dt_daily_3h <- dt[hour(datetime) %in% c(0,8,16) & parameter %in% c("co_eight_hour_max","o3_eight_hour_max")]
+# 
+# dt_daily_3h[hour(datetime) == 0, date := date(datetime - days(1))]
+# dt_daily_3h[hour(datetime) %in% c(8,16), date := date(datetime)]
+# dt_daily_3h_ <- dt_daily_3h %>% 
+#   .[, .(value = max(value, na.rm = T) ), by = .(date, location, parameter)]
+# 
+# dt_daily_1h_1 <- dt[ parameter %in% c("no2_one_hour_max")] %>% 
+#   .[, .(value = max(value, na.rm = T) ), by = .(date = date(datetime), location, parameter)]
+# dt_daily_1h_2 <- dt[ parameter %in% c("pm25_hourly")] %>% 
+#   .[, .(value = mean(value, na.rm = T) ), by = .(date = date(datetime), location, parameter)]
+# 
+# dt_daily <- rbind(dt_daily_1h_1, dt_daily_1h_2, dt_daily_3h_, dt_daily_24h, use.names=TRUE) 
+# 
+# dt_daily[, datetime := date]
+# 
+# dt_daily_no_national <-  dt_daily[!location %in% c("national_mean", "national")]  # 去掉national以后重新算
+# 
+# dt_daily_1 <- dt_daily_no_national[parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly","pm25_hourly"),
+#          .(value = mean(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
+# 
+# dt_daily_2 <- dt_daily_no_national[parameter %in% c("no2_one_hour_max","co_eight_hour_max","o3_eight_hour_max"),
+#                        .(value = max(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
+# 
+# dt_daily <- rbind(dt_daily_no_national, dt_daily_1, dt_daily_2)
+
+# daily data new version-----------------
 dt_daily_24h <- dt[hour(datetime) == 0 & parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly")] %>% 
   .[,.(value = mean(value, na.rm = T) ), by = .(date = date(datetime - days(1)), location, parameter)]
 
 dt_daily_3h <- dt[hour(datetime) %in% c(0,8,16) & parameter %in% c("co_eight_hour_max","o3_eight_hour_max")]
-# rm(dt_daily_3h)
+
 dt_daily_3h[hour(datetime) == 0, date := date(datetime - days(1))]
 dt_daily_3h[hour(datetime) %in% c(8,16), date := date(datetime)]
-dt_daily_3h_ <- dt_daily_3h %>% 
-  .[, .(value = max(value, na.rm = T) ), by = .(date, location, parameter)]
 
-dt_daily_1h_1 <- dt[ parameter %in% c("no2_one_hour_max")] %>% 
-  .[, .(value = max(value, na.rm = T) ), by = .(date = date(datetime), location, parameter)]
-dt_daily_1h_2 <- dt[ parameter %in% c("pm25_hourly")] %>% 
+dt_daily_3h_ <- dt_daily_3h %>% 
+  .[, .(value = mean(value, na.rm = T) ), by = .(date, location, parameter)]
+
+dt_daily_1h <- dt[ parameter %in% c("no2_one_hour_max","pm25_hourly")] %>% 
   .[, .(value = mean(value, na.rm = T) ), by = .(date = date(datetime), location, parameter)]
 
-dt_daily <- rbind(dt_daily_1h_1, dt_daily_1h_2, dt_daily_3h_, dt_daily_24h, use.names=TRUE) 
-
+dt_daily <- rbind(dt_daily_1h, dt_daily_3h_, dt_daily_24h, use.names=TRUE) 
 
 dt_daily[, datetime := date]
 
 dt_daily_no_national <-  dt_daily[!location %in% c("national_mean", "national")]  # 去掉national以后重新算
 
-dt_daily_1 <- dt_daily_no_national[parameter %in% c("pm10_twenty_four_hourly","pm25_twenty_four_hourly","so2_twenty_four_hourly","psi_twenty_four_hourly","pm25_hourly"),
-         .(value = mean(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
+dt_daily_national <- dt_daily_no_national[,.(value = mean(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
 
-dt_daily_2 <- dt_daily_no_national[parameter %in% c("no2_one_hour_max","co_eight_hour_max","o3_eight_hour_max"),
-                       .(value = max(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
-
-# dt_daily_2 <- dt_daily_no_national[parameter %in% c("no2_one_hour_max","co_eight_hour_max","o3_eight_hour_max"),
-#                        .(value = mean(value, na.rm = T) ), by =.(datetime, date, parameter)] [, location := "national"]
-dt_daily <- rbind(dt_daily_no_national, dt_daily_1, dt_daily_2)
-
+dt_daily <- rbind(dt_daily_no_national, dt_daily_national)
 
 # add conditions---------------------------------------------------------------------
 
@@ -205,11 +226,7 @@ dt_mobi_a[, mobi_value := mobi_value/100]
 setnames(dt_mobi_a, "transportation_type", "item")
 dt_mobi_a[, dataset_source := "Apple"]
 
-dt_mobi <- rbind(dt_mobi_g, dt_mobi_a) [item %in% c("driving",
-                                                    "transit", 
-                                                    "workplaces",  
-                                                    "transit_stations", 
-                                                    "residential") ]
+
 
 dt_mobi[, item := factor(item, level = c("driving",
                                         "transit", 
@@ -223,7 +240,19 @@ car_park_dt <- fread(path_all[path %like% "carpark-availability.csv"]$path) %>% 
     .[, datetime := ymd_hms(datetime)] 
 # %>%    .[, .(mean_perc_available = mean(perc_available)), by = .(date(datetime))] %>% ggplot() +
 #   geom_line( aes(date, mean_perc_available)) 
+car_park_dt_daily <- car_park_dt [, .(mobi_value = mean(perc_available, na.rm = T) ), by = date(datetime)] [, `:=`(item = "car_park_availability",
+                                                                                              dataset_source = "HDB")]
+car_park_dt_daily <- car_park_dt [hour(datetime) %in% c(9:19), .(mobi_value = mean(perc_available, na.rm = T) ), by = date(datetime)] [, `:=`(item = "car_park_availability",
+                                                                                                                   dataset_source = "HDB")]
+car_park_dt_daily[yday(date) %in% same_period, .(mobi_value = mean(mobi_value, na.rm = T))]
 
+
+dt_mobi <- rbind(dt_mobi_g, dt_mobi_a, car_park_dt_daily) [item %in% c("driving",
+                                                                       # "transit", 
+                                                                       "workplaces",  
+                                                                       "transit_stations", 
+                                                                       "residential",
+                                                                       "car_park_availability") ]
 
 # read weather data-----------------------------
 dt_weather <- map(path_all[path %like% "weather"]$path, fread) %>%  rbindlist  %>%  setnames("timestamp","datetime") %>%

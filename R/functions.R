@@ -137,7 +137,8 @@ item_variables <- c("walking",
                     "retail_and_recreation", 
                     "transit_stations", 
                     "residential", 
-                    "grocery_and_pharmacy")
+                    "grocery_and_pharmacy",
+                    "car_park_availability")
 
 
 item_labels_b <- c("Walking",  
@@ -148,7 +149,8 @@ item_labels_b <- c("Walking",
                  "Retail & recreation", 
                  "Transit stations", 
                  "Residential", 
-                 "Grocery & pharmacy")
+                 "Grocery & pharmacy",
+                 "Car park")
 
 item_labels  <- c("Walking[A]",  
                    "Driving[A]",
@@ -158,7 +160,8 @@ item_labels  <- c("Walking[A]",
                    "Retail & recreation[G]", 
                    "Transit stations[G]", 
                    "Residential[G]", 
-                   "Grocery & pharmacy[G]")
+                   "Grocery & pharmacy[G]",
+                   "Car park[H]")
 
 item_names <- set_names(item_labels, item_variables)
 
@@ -170,18 +173,31 @@ color_manual_item_b <- c("walking"= "#ff9500",
                        "retail_and_recreation"= "#1967d2",
                        "transit_stations"= "#d01884",
                        "residential"= "#8430ce",
-                       "grocery_and_pharmacy"= "#129eaf")
+                       "grocery_and_pharmacy"= "#129eaf",
+                       "car_park_availability" = "#ef3340")
 
-color_manual_item <- c( #"walking"= "#ff9500",
+color_manual_item_2 <- c( #"walking"= "#ff9500",
                          "driving"= "#129eaf",
                          "transit"= "#af52de",
                          "workplaces"= "#1967d2",
                          "parks"      = "#188038",
                          # "retail_and_recreation"= "#1967d2",
                          "transit_stations"= "#d01884",
-                         "residential"= "#d56e0c"
-                         # "grocery_and_pharmacy"= "#ff2d55"
+                         "residential"= "#d56e0c",
+                         # "grocery_and_pharmacy"= "#ff2d55",
+                         "car_park_availability" = "#ef3340"
                        )
+color_manual_item <- c( #"walking"= "#ff9500",
+                        "driving"= "#7D7D7D",
+                        # "transit"= "#af52de",
+                        "workplaces"= "#4285F4",
+                        # "parks"      = "#188038",
+                        # "retail_and_recreation"= "#1967d2",
+                        "transit_stations"= "#FBBC05",
+                        "residential"= "#34A853",
+                        # "grocery_and_pharmacy"= "#ff2d55",
+                        "car_park_availability" = "#ef3340"
+)
 
 #themes---------------------------------------------
 mytheme_basic <- theme(

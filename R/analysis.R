@@ -2,6 +2,9 @@ source("./R/functions.R")
 source("./R/load_data.R")
 
 # compare table----------------------------------------------------------------------
+# dt_daily[yday %in% same_period & parameter == "psi_twenty_four_hourly" & value >= 50 & location == "national"]
+# dt_daily[yday %in% same_period & parameter == "psi_twenty_four_hourly" & value >= 0 & location == "national"]
+# 83/127 *100
 
 #compare with same period last years
 t_table_years <- dt_daily[yday %in% same_period & parameter != "psi_three_hourly"]  %>%
@@ -122,20 +125,20 @@ boxplot_par_compare_with_last_years <- function(dt_, par){
 p1 <- (boxplot_par_compare_with_last_years(dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) ))                   ) %>%  delete_layers(.,"GeomHline" )
 p2 <- (boxplot_par_compare_with_last_years(dt_daily, "pm10_twenty_four_hourly") +  ylab(bquote(bold( PM[10]~(mu*g/m^3) ) ))     ) %>%  delete_layers(.,"GeomHline" )
 p3 <- (boxplot_par_compare_with_last_years(dt_daily, "pm25_twenty_four_hourly") +  ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) %>%  delete_layers(.,"GeomHline" ) 
-p4 <- (boxplot_par_compare_with_last_years(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) %>%  delete_layers(.,"GeomHline" )
+p4 <- (boxplot_par_compare_with_last_years(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))    ) %>%  delete_layers(.,"GeomAbline" ) 
 p5 <- (boxplot_par_compare_with_last_years(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))     ) %>%  delete_layers(.,"GeomAbline" ) 
-p6 <- (boxplot_par_compare_with_last_years(dt_daily, "co_eight_hour_max") +       ylab(bquote(bold( CO~(mg/m^3)       ) ))      ) %>%  delete_layers(.,"GeomHline" )
+p6 <- (boxplot_par_compare_with_last_years(dt_daily, "co_eight_hour_max") +       ylab(bquote(bold( CO~(mg/m^3)       ) ))      ) %>%  delete_layers(.,"GeomAbline")
 p7 <- (boxplot_par_compare_with_last_years(dt_daily, "so2_twenty_four_hourly") +  ylab(bquote(bold( SO[2]~(mu*g/m^3) ) ))      ) %>%  delete_layers(.,"GeomAbline")
-p8 <- (boxplot_par_compare_with_last_years(dt_daily, "o3_eight_hour_max") +       ylab(bquote(bold( O[3]~(mu*g/m^3)   ) ))     ) %>%  delete_layers(.,"GeomAbline") 
+p8 <- (boxplot_par_compare_with_last_years(dt_daily, "o3_eight_hour_max") +       ylab(bquote(bold( O[3]~(mu*g/m^3)   ) ))     ) %>%   delete_layers(.,"GeomHline" ) 
 
-p1+p2+p4+p3+p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
+# p1+p2+p3+p4+p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
 
 p1+p2+p3 + guide_area() + p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
 
-ggsave("plots/compare_last_years_6.pdf", 
-       width = 9, height = 6, useDingbats=FALSE)
+ggsave("plots/compare_last_years_7.pdf", 
+       width = 8, height = 6, useDingbats=FALSE)
 
-# table 1---------------------------------
+# table 2---------------------------------
 lm_year_dt <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period] %>%
   .[, .(value = mean(value, na.rm = T) ), by = .(index, year, location, parameter)] %>%
   .[, { model <- lm(value ~ index, data = .SD[index != 5 ])
@@ -181,7 +184,7 @@ reduction_dt <- rbind(
   compare_table_year_t[lm_year_dt [baseline_type == "avg_4_yr", c("location","parameter", "baseline_type")] , on =.(location, parameter)] %>% 
     .[, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type", "sign")], fill = T) %>% setorder(location, parameter)
 
-write_file(reduction_dt, "./plots/reduction_dt_2.csv")
+write_file(reduction_dt, "./plots/reduction_dt_3.csv")
 
 
 # correlation between air quality and mobility---------------------------------
@@ -222,7 +225,7 @@ p4 <- dt_mobi[date >= ymd("2020-03-20") & date <= ymd("2020-05-04")] %>%
   geom_line(aes(date, mobi_value, color = item), size = 1.5) +
   geom_vline(xintercept = ymd("2020-04-07"), linetype = 2 ) +
   scale_x_date (name = "Date", expand = c(0,0), date_breaks = "1 weeks", date_labels = "%b %d") +
-  scale_y_continuous(name = "Relative mobility levels", expand = c(0.05,0)) +
+  scale_y_continuous(name = "Mobility levels", expand = c(0.05,0)) +
   # facet_grid(dataset_source~. ,scales = "free") +
   scale_color_manual (name= NULL,
                       labels= item_names ,
@@ -231,7 +234,7 @@ p4 <- dt_mobi[date >= ymd("2020-03-20") & date <= ymd("2020-05-04")] %>%
 
 pp1 + p4  + plot_layout(ncol = 1, heights = c(1,1,1,2)) + plot_layout(guides = "collect")
 
-ggsave("plots/trend_air_quality_mobility_from_13.pdf", 
+ggsave("plots/trend_air_quality_mobility_4.pdf", 
        width = 8, height = 6, useDingbats=FALSE)
 
 
@@ -251,7 +254,7 @@ spearman_table[p.value < 0.001, sign := "***"]
 spearman_table[, rho_star := paste(round(rho,2), sign)] %>% 
   setorder(item, parameter) %>%
   dcast(parameter ~ item, value.var = "rho_star") %>%
-write_file(., "./plots/spearman_table_2.csv")
+write_file(., "./plots/spearman_table_3.csv")
 
 
 ggscatter(dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-03-20")], x = "value_compare_to_baseline", y = "value", 
