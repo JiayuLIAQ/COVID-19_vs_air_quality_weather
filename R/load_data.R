@@ -228,11 +228,11 @@ dt_mobi_a[, dataset_source := "Apple"]
 
 
 
-dt_mobi[, item := factor(item, level = c("driving",
-                                        "transit", 
-                                        "workplaces",  
-                                        "transit_stations", 
-                                        "residential") )]
+# dt_mobi[, item := factor(item, level = c("driving",
+#                                         "transit", 
+#                                         "workplaces",  
+#                                         "transit_stations", 
+#                                         "residential") )]
 
 
 # read car park data-----------------------------

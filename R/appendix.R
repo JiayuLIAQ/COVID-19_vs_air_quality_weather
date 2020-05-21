@@ -206,6 +206,10 @@ dt_weather_national %>%
 ggsave("plots/Monthly rainfall_2.pdf", 
        width = 9, height = 5, useDingbats=FALSE)
 
+
+
+
+# new table 1-------------
 dt_weather_national[year(datetime) == 2020, phase := "cb"]
 dt_weather_national[year(datetime) != 2020, phase := "before"]
 
@@ -218,7 +222,6 @@ dt_weather_national[yday %in% same_period & is.na(phase), phase := "before"]
 
 dt_weather_national_long <- dt_weather_national %>% melt(id.vars = c("datetime", "year" , "month", "phase", "yday"), variable.name = "item", value.name = "value")
 
-# new table 1-------------
 # year 2020 vs. before-----
 t_table_years <- dt_weather_national_long[yday %in% same_period ] %>%
   .[, .(value = mean(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), phase, item)] %>%
@@ -236,7 +239,9 @@ t_table_years[p.value < 0.001, sign := "***"]
 compare_table_years <- dt_weather_national_long[yday %in% same_period ]  %>%
   .[, .(value = mean(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), phase, item)] %>%
   .[, .(cb_mean = mean(value[phase == "cb"], na.rm = T),
+        cb_sd = sd(value[phase == "cb"], na.rm = T),
         before_mean = mean(value[phase =="before"], na.rm = T),
+        before_sd = sd(value[phase =="before"], na.rm = T),
         delta_mean = mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T),
         delta_mean_pctg = 100 * (mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T))/mean(value[phase =="before"], na.rm = T)
   ), by = .(item)]
@@ -262,7 +267,9 @@ t_table_years[p.value < 0.001, sign := "***"]
 compare_table_years <- dt_weather_national_long[yday %in% same_period ]  %>%
   .[, .(value = mean(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), year, item)] %>%
   .[, .(cb_mean = mean(value[year == 2020], na.rm = T),
+        cb_sd = sd(value[year == 2020], na.rm = T),
         before_mean = mean(value[year ==2019], na.rm = T),
+        before_sd = sd(value[year ==2019], na.rm = T),
         delta_mean = mean(value[year == 2020], na.rm = T) - mean(value[year ==2019], na.rm = T),
         delta_mean_pctg = 100 * (mean(value[year == 2020], na.rm = T) - mean(value[year ==2019], na.rm = T))/mean(value[year ==2019], na.rm = T)
   ), by = .(item)]
@@ -289,7 +296,9 @@ t_table_years[p.value < 0.001, sign := "***"]
 compare_table_years <- dt_weather_national_long[yday %in% same_period ]  %>%
   .[, .(value = sum(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), phase, item)] %>%
   .[, .(cb_mean = mean(value[phase == "cb"], na.rm = T),
+        cb_sd = sd(value[phase == "cb"], na.rm = T),
         before_mean = mean(value[phase =="before"], na.rm = T),
+        before_sd = sd(value[phase =="before"], na.rm = T),
         delta_mean = mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T),
         delta_mean_pctg = 100 * (mean(value[phase == "cb"], na.rm = T) - mean(value[phase =="before"], na.rm = T))/mean(value[phase =="before"], na.rm = T)
   ), by = .(item)]
@@ -315,7 +324,9 @@ t_table_years[p.value < 0.001, sign := "***"]
 compare_table_years <- dt_weather_national_long[yday %in% same_period ]  %>%
   .[, .(value = sum(value, na.rm = T)), by = .(datetime = floor_date(datetime, "days"), year, item)] %>%
   .[, .(cb_mean = mean(value[year == 2020], na.rm = T),
+        cb_sd = sd(value[year == 2020], na.rm = T),
         before_mean = mean(value[year ==2019], na.rm = T),
+        before_sd = sd(value[year ==2019], na.rm = T),
         delta_mean = mean(value[year == 2020], na.rm = T) - mean(value[year ==2019], na.rm = T),
         delta_mean_pctg = 100 * (mean(value[year == 2020], na.rm = T) - mean(value[year ==2019], na.rm = T))/mean(value[year ==2019], na.rm = T)
   ), by = .(item)]
@@ -324,6 +335,24 @@ compare_table_year_t <- compare_table_years[t_table_years, on = .(item)]  %>% se
 
 write_file(compare_table_year_t, "./plots/table/2020_2019_rainfall.csv")
 
+
+
+# graphical abstract-----
+data.table(variation = c(-22,-20,-38,-57,-16,-68, 18),
+           parameter = c("psi_twenty_four_hourly", "pm10_twenty_four_hourly", "pm25_twenty_four_hourly", "no2_one_hour_max", "co_eight_hour_max", "so2_twenty_four_hourly", "o3_eight_hour_max"),
+           id = c(1:7)) %>%
+  .[, parameter := fct_reorder(parameter, -id)] %>%
+  ggplot(aes(parameter, variation, fill = parameter))+
+  geom_col() +
+  geom_text(aes(label = variation)) +
+  coord_flip() +
+  scale_fill_manual (name=NULL,
+                     # labels= phase_names ,
+                     values = color_manual_parameter) +
+  mytheme_basic
+
+ggsave("plots/graphical_abstract.pdf", 
+       width = 6, height = 3, useDingbats=FALSE)
 
 
 
