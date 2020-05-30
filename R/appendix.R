@@ -338,7 +338,7 @@ write_file(compare_table_year_t, "./plots/table/2020_2019_rainfall.csv")
 
 
 # graphical abstract-----
-data.table(variation = c(-22,-20,-38,-57,-16,-68, 18),
+data.table(variation = c(-19,-23,-29,-54,-6,-52, 18),
            parameter = c("psi_twenty_four_hourly", "pm10_twenty_four_hourly", "pm25_twenty_four_hourly", "no2_one_hour_max", "co_eight_hour_max", "so2_twenty_four_hourly", "o3_eight_hour_max"),
            id = c(1:7)) %>%
   .[, parameter := fct_reorder(parameter, -id)] %>%
@@ -351,8 +351,8 @@ data.table(variation = c(-22,-20,-38,-57,-16,-68, 18),
                      values = color_manual_parameter) +
   mytheme_basic
 
-ggsave("plots/graphical_abstract.pdf", 
-       width = 6, height = 3, useDingbats=FALSE)
+ggsave("plots/graphical_abstract_2.pdf", 
+       width = 7, height = 3, useDingbats=FALSE)
 
 
 

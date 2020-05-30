@@ -119,14 +119,14 @@ parameter_labels <- c(expression( bold(PM[10]*" ("*mu*g/m^3*")")),
 parameter_names <- magrittr::set_names(parameter_labels, parameter_variables)
 
 color_manual_parameter <- c("pm10_twenty_four_hourly" = "#e5c494",
-                            "pm25_twenty_four_hourly" = "#a6d854",
+                            "pm25_twenty_four_hourly" = "#b3b3b3",
                             "co_eight_hour_max" =       "#66c2a5",
                             "so2_twenty_four_hourly" =  "#ffd92f",
                             "no2_one_hour_max"   =      "#fc8d62",
                             "psi_twenty_four_hourly" =  "#e78ac3",
                             "o3_eight_hour_max" =       "#8da0cb",
                             "psi_three_hourly" =        "black",
-                            "pm25_hourly" =             "#b3b3b3")
+                            "pm25_hourly" =             "#a6d854")
 
 # items-------------------------------
 item_variables <- c("walking",  

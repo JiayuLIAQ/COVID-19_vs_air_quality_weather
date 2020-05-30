@@ -37,7 +37,8 @@ lm_year_dt <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period] %>%
   # predicted_5_05 <- predict(model, new_dt, interval = "confidence" )[2]
   # predicted_5_95 <- predict(model, new_dt, interval = "confidence" )[3]
   covid_change <- .SD[index == 5 ]$value - predicted_5 
-  covid_change_pctg <- 100 * covid_change/.SD[index == 5 ]$value
+  # covid_change_pctg <- 100 * covid_change/.SD[index == 5 ]$value
+  covid_change_pctg <- 100 * covid_change/predicted_5 
   
   confi_DT  <-  confint(model, level =0.9) %>% data.table  # 5% ~ 95%的置信区间
   intercept <- coef(model)[1]
@@ -73,7 +74,7 @@ boxplot_par_compare_with_last_years <- function(dt_, par){
   intercept_ <- lm_year_dt[parameter == par & location == "national"]$intercept 
   slop_ <- lm_year_dt[parameter == par & location == "national"]$slop
   covid_point <- lm_year_dt[parameter == par & location == "national" ]$covid_5 
-  if (lm_year_dt[parameter == par & location == "national" ]$r.squared > 0.6) {
+  if (lm_year_dt[parameter == par & location == "national" ]$r.squared > 0.5) {
     baseline_point <- lm_year_dt[parameter == par & location == "national" ]$predicted_5
   } else {
     baseline_point <- compare_table_year_t[parameter == par & location == "national" ]$before_mean 
@@ -135,7 +136,7 @@ p8 <- (boxplot_par_compare_with_last_years(dt_daily, "o3_eight_hour_max") +     
 
 p1+p2+p3 + guide_area() + p5+p6+p7+p8 + plot_layout(nrow = 2) + plot_layout(guides = "collect") 
 
-ggsave("plots/compare_last_years_7.pdf", 
+ggsave("plots/compare_last_years_8.pdf", 
        width = 8, height = 6, useDingbats=FALSE)
 
 # table 2---------------------------------
@@ -147,8 +148,8 @@ lm_year_dt <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period] %>%
   # predicted_5_05 <- predict(model, new_dt, interval = "confidence" )[2]
   # predicted_5_95 <- predict(model, new_dt, interval = "confidence" )[3]
   covid_change <- .SD[index == 5 ]$value - predicted_5 
-  covid_change_pctg <- 100 * covid_change/.SD[index == 5 ]$value
-  
+  # covid_change_pctg <- 100 * covid_change/.SD[index == 5 ]$value
+  covid_change_pctg <- 100 * covid_change/predicted_5 
   
   confi_DT  <-  confint(model, level =0.9) %>% data.table  # 5% ~ 95%的置信区间
   intercept <- coef(model)[1]
@@ -175,25 +176,28 @@ lm_year_dt <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period] %>%
   )}, by = .(location, parameter)] %>% setorder(location, parameter)
 
 
-lm_year_dt [r.squared > 0.6, baseline_type := "predicted"]
-
-lm_year_dt [r.squared < 0.6, baseline_type := "avg_4_yr"]
+lm_year_dt [r.squared > 0.5, baseline_type := "predicted"]
+lm_year_dt [r.squared < 0.5, baseline_type := "avg_4_yr"]
 
 reduction_dt <- rbind(
   lm_year_dt[baseline_type == "predicted"] [, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type")],
   compare_table_year_t[lm_year_dt [baseline_type == "avg_4_yr", c("location","parameter", "baseline_type")] , on =.(location, parameter)] %>% 
     .[, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type", "sign")], fill = T) %>% setorder(location, parameter)
 
-write_file(reduction_dt, "./plots/reduction_dt_3.csv")
+write_file(reduction_dt, "./plots/reduction_dt_5.csv")
 
 
 # correlation between air quality and mobility---------------------------------
 # figure 2----
-trend_plot_fun <- function(dt_, par) {
-  min_ <- dt_[location == "national" &   date >= ymd("2020-03-20") & date <= ymd("2020-05-04") & parameter == par]$value %>% min 
-  max_ <- dt_[location == "national" &   date >= ymd("2020-03-20") & date <= ymd("2020-05-04") & parameter == par]$value %>% max
+
+start <- ymd("2020-03-23")
+end <- ymd("2020-05-11")
+
+trend_plot_fun <- function(dt_, par, start_ = start, end_  = end) {
+  min_ <- dt_[location == "national" &   date >= start_ & date <= end_ & parameter == par]$value %>% min 
+  max_ <- dt_[location == "national" &   date >= start_ & date <= end_ & parameter == par]$value %>% max
   range_ <- max_-min_
-  dt_[location == "national" &  date >= ymd("2020-03-20") & date <= ymd("2020-05-04") & parameter == par] %>%  
+  dt_[location == "national" &  date >= start_ & date <= end_ & parameter == par] %>%  
     ggplot () +
     # geom_area(aes(datetime, value, fill = parameter)) +
     geom_ribbon(aes(date, ymin = max(min_-range_ * 0.3,0), ymax = value, fill = parameter, color = parameter), alpha = 0.5) +
@@ -210,16 +214,43 @@ trend_plot_fun <- function(dt_, par) {
 }
 
 p1 <- trend_plot_fun(dt_daily, "psi_twenty_four_hourly") +  ylab(bquote(bold( PSI ) )) 
-p2 <- trend_plot_fun(dt_daily, "pm25_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))  
-p3 <- trend_plot_fun(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))  
+p3 <- trend_plot_fun(dt_daily, "pm25_twenty_four_hourly") +              ylab(bquote(bold( PM[2.5]~(mu*g/m^3) ) ))  
+p2 <- trend_plot_fun(dt_daily, "pm10_twenty_four_hourly") +        ylab(bquote(bold( PM[10]~(mu*g/m^3)  ) ))
+p5 <- trend_plot_fun(dt_daily, "co_eight_hour_max") +        ylab(bquote(bold( CO~(mg/m^3)  ) ))  
+p6 <- trend_plot_fun(dt_daily, "so2_twenty_four_hourly") +        ylab(bquote(bold( SO[2]~(mu*g/m^3)  ) ))  
+p4 <- trend_plot_fun(dt_daily, "no2_one_hour_max") +        ylab(bquote(bold( NO[2]~(mu*g/m^3)  ) ))  
+p7 <- trend_plot_fun(dt_daily, "o3_eight_hour_max") +        ylab(bquote(bold( O[3]~(mu*g/m^3)  ) ))  
 
-pp1 <-  p1 + p2 + p3   &
+p1+p2+p3+p4+p5+p6+p7 + plot_layout(ncol = 2) & guides(fill = F, color = F) &
+   theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank())
+
+pp1 <- p1 + p2+p3+p4+p5+p6+p7 &  # guides(fill = F, color = F) &
   theme(axis.line.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.text.x=element_blank(),
         axis.title.x = element_blank())
 
-p4 <- dt_mobi[date >= ymd("2020-03-20") & date <= ymd("2020-05-04")] %>%
+pp1 + p_mobi + guide_area() + plot_layout(ncol = 2, heights = c(1,1,1,2), guides= "collect")
+
+pp1 + p_mobi + plot_layout(ncol = 1, heights = c(1,1,1,1,1,1,1,3))
+
+
+pp1 <-  p1+p2+p3+p4+p5+p6+p7   &
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank())
+
+pp1 <-  p2+p5+p6   &
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x=element_blank(),
+        axis.title.x = element_blank())
+
+p_mobi <- dt_mobi[date >= start & date <= end] %>%
   ggplot () +
   # geom_area(aes(datetime, value, fill = parameter)) +
   geom_line(aes(date, mobi_value, color = item), size = 1.5) +
@@ -234,12 +265,12 @@ p4 <- dt_mobi[date >= ymd("2020-03-20") & date <= ymd("2020-05-04")] %>%
 
 pp1 + p4  + plot_layout(ncol = 1, heights = c(1,1,1,2)) + plot_layout(guides = "collect")
 
-ggsave("plots/trend_air_quality_mobility_4.pdf", 
-       width = 8, height = 6, useDingbats=FALSE)
+ggsave("plots/trend_air_quality_mobility_6.pdf", 
+       width = 9, height = 8, useDingbats=FALSE)
 
 
 # table 2 spearman correlation table -----
-spearman_table <- dt_daily[dt_mobi, on = .(date)][date >= ymd("2020-03-20") & date <= ymd("2020-05-04") , 
+spearman_table <- dt_daily[dt_mobi, on = .(date)][date >= start & date <= end , 
                                             {t.results <- cor.test(mobi_value, value, method=c("spearman"))
                                             rho <- t.results$estimate
                                             p <- t.results$p.value
@@ -254,7 +285,7 @@ spearman_table[p.value < 0.001, sign := "***"]
 spearman_table[, rho_star := paste(round(rho,2), sign)] %>% 
   setorder(item, parameter) %>%
   dcast(parameter ~ item, value.var = "rho_star") %>%
-write_file(., "./plots/spearman_table_3.csv")
+write_file(., "./plots/spearman_table_7.csv")
 
 
 ggscatter(dt_daily[dt_mobi_g, on = .(date)][date >= ymd("2020-03-20")], x = "value_compare_to_baseline", y = "value", 

@@ -26,7 +26,7 @@ dt <- rbind(dt, dt [location != "national", .(value = mean(value, na.rm = T),
 
 # add conditions---------------------------------------------------------------------
 
-cb_phase <- ymd("2020-04-07") %--% ymd_hms("2020-05-04 23:59:59") 
+cb_phase <- ymd("2020-04-07") %--% ymd_hms("2020-05-11 23:59:59") 
 
 dt[datetime %within% cb_phase, phase := "cb"]
 
