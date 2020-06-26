@@ -97,7 +97,7 @@ boxplot_par_compare_with_last_years <- function(dt_, par){
     geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +
     # geom_half_violin(side = "r") +
     geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
-    stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+    stat_summary(fun = mean, geom= "point", shape= 23, size= 2 , 
                  fill = "white", position = position_dodge(width = 0.75)) +
     geom_signif(y_position = y_posi_1, comparisons = list(c("2019", "2020")),
                 map_signif_level=TRUE, test = "wilcox.test") +
@@ -179,12 +179,23 @@ lm_year_dt <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period] %>%
 lm_year_dt [r.squared > 0.5, baseline_type := "predicted"]
 lm_year_dt [r.squared < 0.5, baseline_type := "avg_4_yr"]
 
-reduction_dt <- rbind(
-  lm_year_dt[baseline_type == "predicted"] [, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type")],
-  compare_table_year_t[lm_year_dt [baseline_type == "avg_4_yr", c("location","parameter", "baseline_type")] , on =.(location, parameter)] %>% 
-    .[, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type", "sign")], fill = T) %>% setorder(location, parameter)
+compare_table_year_t[, counterfactual := before_mean]
+lm_year_dt[, `:=` (counterfactual = predicted_5,
+                   cb_mean = covid_5)]
 
-write_file(reduction_dt, "./plots/reduction_dt_5.csv")
+reduction_dt <- rbind(
+  lm_year_dt[baseline_type == "predicted"] [, c("location", "parameter", "counterfactual", "cb_mean", "delta_mean", "delta_mean_pctg", "baseline_type")],
+  compare_table_year_t[lm_year_dt [baseline_type == "avg_4_yr", c("location","parameter", "counterfactual", "cb_mean", "baseline_type")] , on =.(location, parameter)] %>% 
+    .[, c("location", "parameter", "counterfactual", "cb_mean", "delta_mean", "delta_mean_pctg", "baseline_type", "sign")], fill = T) %>% setorder(location, parameter)
+
+reduction_dt[is.na(sign), sign := "&"]
+reduction_dt[, conterfactual_2 := paste( round(counterfactual, 1), sign)]
+reduction_dt[, cb_mean :=  round(cb_mean, 1)]
+reduction_dt[, delta_mean_pctg := round(delta_mean_pctg)]
+
+
+
+write_file(reduction_dt[parameter != "pm25_twenty_four_hourly", c("location","parameter","conterfactual_2","cb_mean", "delta_mean_pctg")], "./plots/reduction_dt_7.csv")
 
 
 # correlation between air quality and mobility---------------------------------
@@ -347,7 +358,7 @@ dt[parameter != "psi_three_hourly" & phase != "before" & !parameter %like% "inde
   ggplot(aes(location, value, fill = phase)) +
   # geom_col(position = "dodge") +
   # geom_bar(position = "dodge", stat = "identity") +
-  stat_summary(aes(group = phase), fun.y = mean, geom= "bar", 
+  stat_summary(aes(group = phase), fun = mean, geom= "bar", 
                position = position_dodge(width = 0.95)) +
   stat_compare_means(aes(group = phase), label = "p.signif", method = "wilcox.test", symnum.args = symnum.args) +
   # coord_cartesian(ylim = c(30,55))+
@@ -360,7 +371,7 @@ dt[parameter != "psi_three_hourly" & phase != "before" & !parameter %like% "inde
 dt[parameter != "psi_three_hourly" & phase != "before" & !parameter %like% "index" & location != "national"]  %>%
   ggplot(aes(location, value, fill = phase)) +
   geom_boxplot( position = "dodge") +
-  stat_summary(aes(group = phase), fun.y = mean, geom= "point", shape= 23, size= 2 , 
+  stat_summary(aes(group = phase), fun = mean, geom= "point", shape= 23, size= 2 , 
                fill = "white", position = position_dodge(width = 0.75)) +
   facet_wrap(vars(parameter_fct), scales = "free_y", nrow = 2, labeller = label_parsed) +
   stat_compare_means(aes(group = phase), label = "p.signif", method = "wilcox.test", symnum.args = symnum.args) +
@@ -387,7 +398,7 @@ dt [location != "national" &  !parameter %like% "index" & datetime > ymd("2020-0
 dt [ phase %in% c("before","before_cb","cb") & !parameter %like% "index" & parameter != "psi_three_hourly"] %>%
   ggplot (aes(phase, value, fill = phase)) +
   geom_boxplot(outlier.alpha = 0.3, outlier.size = 0.5) +
-  stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 ,
+  stat_summary(fun = mean, geom= "point", shape= 23, size= 2 ,
                fill = "white", position = position_dodge(width = 0.75)) +
   geom_signif(comparisons = list(c("before_cb", "cb"), c("before","cb")),
               map_signif_level=TRUE) +
@@ -411,7 +422,7 @@ boxplot_par_compare_with_before_cb <- function(par){
 dt [location == "national_mean" & parameter == par & phase %in% c("before_cb","cb")] %>% 
   ggplot (aes(phase, value, fill = phase)) +
   geom_boxplot(outlier.alpha = 0.3, outlier.size = 0.5) +
-  stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+  stat_summary(fun = mean, geom= "point", shape= 23, size= 2 , 
                fill = "white", position = position_dodge(width = 0.75)) +
   geom_signif(comparisons = list(c("before_cb", "cb")),
               map_signif_level=TRUE) +
@@ -450,7 +461,7 @@ dt[location == "national" & yday %in% same_period & !parameter %like% "index" & 
   .[,year := as.character(year)] %>%
   ggplot (aes(year, value, fill = year)) +
   geom_boxplot(outlier.alpha = 0.3, outlier.size = 0.5) +
-  stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+  stat_summary(fun = mean, geom= "point", shape= 23, size= 2 , 
                fill = "white", position = position_dodge(width = 0.75)) +
   # geom_signif(comparisons = list(c("2016", "2017", "2018", "2019", "2020")),
   #             map_signif_level=TRUE) +
@@ -473,7 +484,7 @@ dt[location == "national_mean" & yday %in% same_period & !parameter %like% "inde
   geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +
   # geom_half_violin(side = "r") +
   geom_half_point(aes(color = year), side = "r", alpha = 0.1, size= 1,transformation = position_jitter(width = 1, height = 1)) +
-  stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+  stat_summary(fun = mean, geom= "point", shape= 23, size= 2 , 
                fill = "white", position = position_dodge(width = 0.75)) +
   geom_signif(comparisons = list(c("2019", "2020")),
               map_signif_level=TRUE) +

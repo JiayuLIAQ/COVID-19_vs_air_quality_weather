@@ -10,6 +10,7 @@ dt <- rbind(fread(path_all[path %like% "pm25"]$path ) %>% setnames("PM25","value
   setnames("timestamp","datetime") %>%   
   .[, datetime := ymd_hms(datetime)]
 
+# dt[,c("location","longitude","latitude")] %>% unique
 # to remove duplicates (2016-03-16)
 dt <- dt[,.(value = mean(value, na.rm = T)), by = .(datetime, location, longitude, latitude, parameter)]
 

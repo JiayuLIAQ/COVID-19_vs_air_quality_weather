@@ -32,7 +32,7 @@ boxplot_par_compare_with_last_years <- function(dt_, par, loc_ = "central"){
     geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +
     # geom_half_violin(side = "r") +
     geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
-    stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+    stat_summary(fun = mean, geom= "point", shape= 23, size= 2 , 
                  fill = "white", position = position_dodge(width = 0.75)) +
     geom_signif(y_position = y_posi_1, comparisons = list(c("2019", "2020")),
                 map_signif_level=TRUE, test = "wilcox.test") +
@@ -163,7 +163,7 @@ boxplot_par_compare_with_last_years <- function(dt_, par){
     geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +
     # geom_half_violin(side = "r") +
     geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
-    stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+    stat_summary(fun = mean, geom= "point", shape= 23, size= 2 , 
                  fill = "white", position = position_dodge(width = 0.75)) +
     geom_signif(y_position = y_posi_1, comparisons = list(c("2019", "2020")),
                 map_signif_level=TRUE, test = "wilcox.test") +
@@ -377,7 +377,7 @@ boxplot_par_compare_with_last_years <- function(dt_, par){
     geom_half_boxplot(outlier.alpha = 0, outlier.size = 0.5) +
     # geom_half_violin(side = "r") +
     geom_half_point(aes(color = year), side = "r", alpha = 0.5, size= 1, transformation = position_jitter(width = 0.5)) +
-    stat_summary(fun.y = mean, geom= "point", shape= 23, size= 2 , 
+    stat_summary(fun = mean, geom= "point", shape= 23, size= 2 , 
                  fill = "white", position = position_dodge(width = 0.75)) +
     geom_signif(y_position = y_posi_1, comparisons = list(c("2019", "2020")),
                 map_signif_level=TRUE, test = "wilcox.test") +
@@ -460,16 +460,26 @@ lm_year_dt <- year_index_dt[dt_daily, on = .(year)][ yday %in% same_period] %>%
 lm_year_dt [p.value < 0.01, baseline_type := "predicted"]
 lm_year_dt [p.value > 0.01, baseline_type := "avg_4_yr"]
 
-lm_year_dt %>% write_file("lm_year_dt.csv")
-lm_year_dt[p.value >= 0.05, sign := "NS."]
-lm_year_dt[p.value < 0.05 & p.value >= 0.01, sign := "*"]
-lm_year_dt[p.value < 0.01 & p.value >= 0.001, sign := "**"]
-lm_year_dt[p.value < 0.001, sign := "***"]
+# lm_year_dt %>% write_file("lm_year_dt.csv")
+# lm_year_dt[p.value >= 0.05, sign := "NS."]
+# lm_year_dt[p.value < 0.05 & p.value >= 0.01, sign := "*"]
+# lm_year_dt[p.value < 0.01 & p.value >= 0.001, sign := "**"]
+# lm_year_dt[p.value < 0.001, sign := "***"]
+
+lm_year_dt [location == "national" & parameter == "o3_eight_hour_max", baseline_type := "predicted"]
+
+compare_table_year_t[, counterfactual := before_mean]
+lm_year_dt[, `:=` (counterfactual = predicted_5,
+                   cb_mean = covid_5)]
 
 reduction_dt <- rbind(
-  lm_year_dt[baseline_type == "predicted"] [, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type")],
-  compare_table_year_t[lm_year_dt [baseline_type == "avg_4_yr", c("location","parameter", "baseline_type")] , on =.(location, parameter)] %>% 
-    .[, c("location", "parameter", "delta_mean", "delta_mean_pctg", "baseline_type", "sign")], fill = T) %>% setorder(location, parameter)
+  lm_year_dt[baseline_type == "predicted"] [, c("location", "parameter", "counterfactual", "cb_mean", "delta_mean", "delta_mean_pctg", "baseline_type")],
+  compare_table_year_t[lm_year_dt [baseline_type == "avg_4_yr", c("location","parameter", "counterfactual", "cb_mean", "baseline_type")] , on =.(location, parameter)] %>% 
+    .[, c("location", "parameter", "counterfactual", "cb_mean", "delta_mean", "delta_mean_pctg", "baseline_type", "sign")], fill = T) %>% setorder(location, parameter)
 
-write_file(reduction_dt, "./plots/reduction_dt_6.csv")
+reduction_dt[is.na(sign), sign := "&"]
+reduction_dt[, conterfactual_2 := paste( round(counterfactual, 1), sign)]
+reduction_dt[, cb_mean :=  round(cb_mean, 1)]
+reduction_dt[, delta_mean_pctg := round(delta_mean_pctg)]
 
+write_file(reduction_dt[parameter != "pm25_twenty_four_hourly", c("location","parameter","conterfactual_2","cb_mean", "delta_mean_pctg")], "./plots/reduction_dt_8_1.csv")
